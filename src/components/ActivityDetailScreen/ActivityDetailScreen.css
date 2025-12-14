@@ -1,0 +1,429 @@
+.activity-detail-container {
+  min-height: 100vh;
+  background: #f5f5f5;
+  padding-bottom: 20px;
+}
+
+/* Header */
+.activity-detail-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  background: #ffffff;
+  border-bottom: 1px solid #e5e7eb;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.activity-detail-back-button {
+  background: none;
+  border: none;
+  padding: 8px;
+  cursor: pointer;
+  color: #1a1a1a;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  transition: background 0.2s ease;
+}
+
+.activity-detail-back-button:hover {
+  background: #f3f4f6;
+}
+
+.activity-detail-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: #1a1a1a;
+  margin: 0;
+}
+
+/* Map Section */
+.activity-detail-map {
+  width: 100%;
+  background: #e5e7eb;
+  position: relative;
+}
+
+/* Focus to location button */
+.activity-detail-focus-btn {
+  position: absolute;
+  bottom: 16px;
+  right: 16px;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background-color: #ffffff;
+  border: 2px solid #e5e7eb;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 10;
+  transition: all 0.2s;
+  color: #3b82f6;
+}
+
+.activity-detail-focus-btn:hover {
+  background-color: #f3f4f6;
+  border-color: #3b82f6;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  transform: scale(1.05);
+}
+
+.activity-detail-focus-btn:active {
+  transform: scale(0.95);
+}
+
+/* Status Section */
+.activity-detail-status-section {
+  padding: 16px 20px;
+  background: #ecfdf5;
+  border-bottom: 1px solid #d1fae5;
+}
+
+.activity-detail-status-badge {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.activity-detail-status-icon {
+  width: 40px;
+  height: 40px;
+  background: #10b981;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #ffffff;
+  font-size: 20px;
+  font-weight: bold;
+}
+
+.activity-detail-status-info {
+  flex: 1;
+}
+
+.activity-detail-status-text {
+  font-size: 16px;
+  font-weight: 700;
+  color: #059669;
+  margin-bottom: 4px;
+}
+
+.activity-detail-status-time {
+  font-size: 14px;
+  color: #6b7280;
+}
+
+/* Section */
+.activity-detail-section {
+  background: #ffffff;
+  padding: 20px;
+  margin-top: 12px;
+}
+
+.activity-detail-section-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: #374151;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin: 0 0 16px 0;
+}
+
+/* Driver Information */
+.activity-detail-driver-info {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.activity-detail-driver-avatar {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #ffffff;
+  font-size: 24px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.activity-detail-driver-details {
+  flex: 1;
+  min-width: 0;
+}
+
+.activity-detail-driver-name {
+  font-size: 18px;
+  font-weight: 700;
+  color: #1a1a1a;
+  margin-bottom: 4px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.activity-detail-driver-rating {
+  font-size: 14px;
+  color: #f59e0b;
+  font-weight: 600;
+}
+
+.activity-detail-driver-vehicle {
+  font-size: 14px;
+  color: #6b7280;
+  margin-bottom: 4px;
+}
+
+.activity-detail-driver-phone {
+  font-size: 14px;
+  color: #3b82f6;
+  font-weight: 500;
+  margin-top: 4px;
+}
+
+.activity-detail-driver-actions {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.activity-detail-call-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 16px;
+  background: #10b981;
+  color: #ffffff;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.activity-detail-call-btn:hover {
+  background: #059669;
+}
+
+.activity-detail-message-btn {
+  padding: 10px 16px;
+  background: #ffffff;
+  color: #374151;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.activity-detail-message-btn:hover {
+  background: #f9fafb;
+  border-color: #d1d5db;
+}
+
+/* Route Section */
+.activity-detail-route {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.activity-detail-route-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+}
+
+.activity-detail-route-icon {
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.pickup-icon {
+  color: #3b82f6;
+}
+
+.pickup-icon .route-icon-circle {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #3b82f6;
+  border: 3px solid #dbeafe;
+}
+
+.destination-icon {
+  color: #ef4444;
+}
+
+.activity-detail-route-line {
+  width: 2px;
+  height: 24px;
+  background: #e5e7eb;
+  margin-left: 11px;
+  margin-top: -2px;
+  margin-bottom: -2px;
+}
+
+.activity-detail-route-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.activity-detail-route-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #6b7280;
+  text-transform: uppercase;
+  margin-bottom: 4px;
+}
+
+.activity-detail-route-address {
+  font-size: 16px;
+  font-weight: 600;
+  color: #1a1a1a;
+  line-height: 1.4;
+}
+
+/* Payment Details */
+.activity-detail-payment-details {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.activity-detail-payment-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 14px;
+  color: #374151;
+}
+
+.activity-detail-payment-row.discount {
+  color: #10b981;
+}
+
+.activity-detail-payment-total {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 12px;
+  border-top: 1px solid #e5e7eb;
+  font-size: 18px;
+  font-weight: 700;
+  color: #1a1a1a;
+}
+
+.activity-detail-payment-method {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+  font-size: 14px;
+  color: #6b7280;
+}
+
+/* Support Section */
+.activity-detail-support {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 14px;
+  color: #374151;
+}
+
+.activity-detail-support-btn {
+  background: none;
+  border: none;
+  color: #3b82f6;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 4px 8px;
+  transition: color 0.2s ease;
+}
+
+.activity-detail-support-btn:hover {
+  color: #2563eb;
+}
+
+/* Loading & Error States */
+.activity-detail-loading,
+.activity-detail-error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  min-height: 50vh;
+}
+
+.activity-detail-spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid #f3f4f6;
+  border-top-color: #009b77;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 16px;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.activity-detail-error {
+  color: #ef4444;
+}
+
+.activity-detail-error .activity-detail-back-btn {
+  margin-top: 16px;
+  padding: 10px 20px;
+  background: #009b77;
+  color: #ffffff;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+/* Responsive */
+@media (max-width: 480px) {
+  .activity-detail-section {
+    padding: 16px;
+  }
+  
+  .activity-detail-driver-actions {
+    flex-direction: column;
+    width: 100%;
+  }
+  
+  .activity-detail-call-btn,
+  .activity-detail-message-btn {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+
+

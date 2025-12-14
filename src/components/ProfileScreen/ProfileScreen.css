@@ -1,0 +1,276 @@
+.profile-container {
+  padding: 20px 16px;
+  min-height: 100%;
+  background: #ffffff;
+}
+
+/* Profile Header */
+.profile-header {
+  text-align: center;
+  margin-bottom: 24px;
+}
+
+.profile-avatar-wrapper {
+  position: relative;
+  display: inline-block;
+  margin-bottom: 16px;
+}
+
+.profile-avatar {
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  overflow: hidden;
+  border: 4px solid #ffffff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.profile-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.profile-play-badge {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: #059669;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 3px solid #ffffff;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.profile-play-icon {
+  width: 16px;
+  height: 16px;
+  color: white;
+  fill: white;
+  margin-left: 2px;
+}
+
+.profile-name {
+  font-size: 20px;
+  font-weight: 700;
+  color: #1a1a1a;
+  margin-bottom: 4px;
+}
+
+.profile-phone {
+  font-size: 14px;
+  color: #6b7280;
+}
+
+/* Statistics Bar */
+.profile-stats {
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  background: white;
+  border-radius: 12px;
+  padding: 20px 0;
+  margin-bottom: 20px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.profile-stat-item {
+  flex: 1;
+  text-align: center;
+}
+
+.profile-stat-value {
+  font-size: 24px;
+  font-weight: 700;
+  color: #1a1a1a;
+  margin-bottom: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+}
+
+.profile-stat-star {
+  width: 20px;
+  height: 20px;
+  color: #fbbf24;
+  fill: #fbbf24;
+}
+
+.profile-stat-label {
+  font-size: 12px;
+  color: #6b7280;
+}
+
+.profile-stat-divider {
+  width: 1px;
+  height: 40px;
+  background: #e5e7eb;
+}
+
+/* Rewards Banner */
+.profile-rewards-banner {
+  background: linear-gradient(to right, #fbbf24, #f97316);
+  border-radius: 12px;
+  padding: 16px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 24px;
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+
+.profile-rewards-banner:active {
+  transform: scale(0.98);
+}
+
+.profile-rewards-content {
+  flex: 1;
+}
+
+.profile-rewards-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: white;
+  margin-bottom: 4px;
+}
+
+.profile-rewards-subtitle {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.profile-rewards-arrow {
+  width: 20px;
+  height: 20px;
+  color: white;
+  flex-shrink: 0;
+}
+
+/* Menu List */
+.profile-menu {
+  background: white;
+  border-radius: 12px;
+  overflow: hidden;
+  margin-bottom: 24px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.profile-menu-item {
+  width: 100%;
+  padding: 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border: none;
+  background: white;
+  cursor: pointer;
+  transition: background 0.2s;
+  border-bottom: 1px solid #f3f4f6;
+}
+
+.profile-menu-item:last-child {
+  border-bottom: none;
+}
+
+.profile-menu-item:hover {
+  background: #f9fafb;
+}
+
+.profile-menu-item:active {
+  background: #f3f4f6;
+}
+
+.profile-menu-left {
+  display: flex;
+  align-items: center;
+}
+
+.profile-menu-icon {
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.profile-menu-icon-svg {
+  width: 20px;
+  height: 20px;
+}
+
+.profile-menu-label {
+  flex: 1;
+  text-align: left;
+  font-size: 14px;
+  font-weight: 500;
+  color: #1a1a1a;
+}
+
+.profile-menu-arrow {
+  width: 16px;
+  height: 16px;
+  color: #9ca3af;
+  flex-shrink: 0;
+}
+
+.profile-menu-status {
+  font-size: 12px;
+  font-weight: 600;
+  flex-shrink: 0;
+  padding: 4px 8px;
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.05);
+}
+
+/* Logout Button */
+.profile-logout-btn {
+  width: 100%;
+  padding: 16px;
+  background: #ef4444;
+  border: none;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  cursor: pointer;
+  transition: background 0.2s;
+  margin-bottom: 20px;
+}
+
+.profile-logout-btn:hover {
+  background: #dc2626;
+}
+
+.profile-logout-btn:active {
+  background: #b91c1c;
+}
+
+.profile-logout-icon {
+  width: 24px;
+  height: 24px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.profile-logout-icon-svg {
+  width: 16px;
+  height: 16px;
+  color: white;
+}
+
+.profile-logout-text {
+  font-size: 16px;
+  font-weight: 600;
+  color: white;
+}
+

@@ -1,0 +1,226 @@
+.payment-container {
+  padding: 20px 16px;
+  min-height: 100%;
+}
+
+.payment-content {
+  max-width: 100%;
+  margin: 0 auto;
+}
+
+/* Wallet Card */
+.wallet-card {
+  background: linear-gradient(to right, #059669, #10b981);
+  border-radius: 16px;
+  padding: 24px;
+  color: white;
+  box-shadow: 0 4px 12px rgba(5, 150, 105, 0.2);
+  margin-bottom: 24px;
+  position: relative;
+  overflow: hidden;
+}
+
+.wallet-card-bg-circle {
+  position: absolute;
+  top: -40px;
+  right: -40px;
+  width: 128px;
+  height: 128px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 50%;
+}
+
+.wallet-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 24px;
+  position: relative;
+  z-index: 1;
+}
+
+.wallet-info {
+  flex: 1;
+}
+
+.wallet-label {
+  font-size: 14px;
+  opacity: 0.9;
+  margin-bottom: 8px;
+  font-weight: 500;
+}
+
+.wallet-balance {
+  font-size: 36px;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.wallet-send-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.2);
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.2s;
+  flex-shrink: 0;
+}
+
+.wallet-send-btn:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+.wallet-send-icon {
+  width: 20px;
+  height: 20px;
+  color: white;
+}
+
+.wallet-bottom {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  position: relative;
+  z-index: 1;
+}
+
+.wallet-card-number {
+  font-size: 14px;
+  font-family: monospace;
+  opacity: 0.9;
+  letter-spacing: 1px;
+}
+
+.wallet-topup-btn {
+  background: rgba(255, 255, 255, 0.25);
+  backdrop-filter: blur(8px);
+  border: none;
+  border-radius: 8px;
+  padding: 8px 16px;
+  color: white;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.wallet-topup-btn:hover {
+  background: rgba(255, 255, 255, 0.35);
+}
+
+/* Payment Methods */
+.payment-methods-title {
+  font-weight: 700;
+  font-size: 18px;
+  color: #1a1a1a;
+  margin-bottom: 16px;
+}
+
+.payment-methods-card {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+}
+
+.payment-method-item {
+  width: 100%;
+  padding: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border: none;
+  background: white;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.payment-method-item:hover {
+  background: #f9fafb;
+}
+
+.payment-method-item:active {
+  background: #f3f4f6;
+}
+
+.payment-method-item-last {
+  border-top: 1px solid #f3f4f6;
+}
+
+.payment-method-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.payment-icon-circle {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.payment-icon-green {
+  background: #d1fae5;
+}
+
+.payment-icon-blue {
+  background: #dbeafe;
+}
+
+.payment-icon {
+  width: 20px;
+  height: 20px;
+}
+
+.payment-icon-green .payment-icon {
+  color: #059669;
+  fill: #059669;
+  stroke: #059669;
+}
+
+.payment-icon-blue .payment-icon {
+  color: #2563eb;
+  fill: #2563eb;
+}
+
+.payment-icon-green .payment-icon path {
+  fill: #059669;
+  stroke: #059669;
+}
+
+.payment-icon-blue .payment-icon path {
+  fill: #2563eb;
+}
+
+.payment-radio {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 2px solid #d1d5db;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  background: white;
+}
+
+.payment-radio-selected {
+  border-color: #059669;
+  background: #059669;
+}
+
+.payment-radio-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: white;
+}
+

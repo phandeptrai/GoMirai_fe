@@ -1,0 +1,281 @@
+/* Shared auth styles */
+.auth-page {
+  height: 100vh;
+  max-height: 100vh;
+  overflow-y: auto;
+  background: #f5f7fa;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  color: #1a1a1a;
+}
+
+.hero {
+  width: 100%;
+  background: linear-gradient(135deg, #0ba360 0%, #0a8f50 100%);
+  color: #fff;
+  padding: 20px 24px 28px;
+  border-bottom-left-radius: 28px;
+  border-bottom-right-radius: 28px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.12);
+  position: relative;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.hero::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(rgba(255, 255, 255, 0.06) 1px, transparent 1px);
+  background-size: 28px 28px;
+  opacity: 0.7;
+}
+
+.hero-logo {
+  width: 50px;
+  height: 50px;
+  border-radius: 14px;
+  background: #fff;
+  color: #0ba360;
+  display: grid;
+  place-items: center;
+  font-size: 24px;
+  font-weight: 800;
+  z-index: 1;
+}
+
+.hero-text {
+  text-align: center;
+  z-index: 1;
+}
+
+.hero-title {
+  font-size: 20px;
+  font-weight: 800;
+  letter-spacing: 0.3px;
+}
+
+.hero-sub {
+  font-size: 13px;
+  opacity: 0.9;
+}
+
+.auth-card {
+  width: 100%;
+  margin-top: 12px;
+  border-radius: 18px;
+  padding: 20px 20px 24px;
+  position: relative;
+  z-index: 2;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.auth-heading h1 {
+  font-size: 22px;
+  margin-bottom: 4px;
+}
+
+.auth-heading p {
+  color: #5f6c7b;
+  font-size: 13px;
+  margin-bottom: 16px;
+}
+
+.fields {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.field-label {
+  font-size: 12px;
+  font-weight: 700;
+  color: #5f6c7b;
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
+}
+
+.field-box {
+  display: flex;
+  align-items: center;
+  background: #f7f9fc;
+  border: 1px solid #e3e8ef;
+  border-radius: 12px;
+  padding: 10px 12px;
+  gap: 8px;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.field-box:focus-within {
+  border-color: #0ba360;
+  box-shadow: 0 6px 14px rgba(11, 163, 96, 0.15);
+  background: #fff;
+}
+
+.field-icon {
+  width: 24px;
+  height: 24px;
+  display: grid;
+  place-items: center;
+}
+
+.field-input {
+  border: none;
+  background: transparent;
+  outline: none;
+  width: 100%;
+  font-size: 15px;
+  color: #1a1a1a;
+}
+
+.field-input::placeholder {
+  color: #9aa4b5;
+}
+
+.field-box-error {
+  border-color: #ef4444;
+  background: #fef2f2;
+}
+
+.field-box-error:focus-within {
+  border-color: #ef4444;
+  box-shadow: 0 6px 14px rgba(239, 68, 68, 0.15);
+}
+
+.field-error {
+  color: #ef4444;
+  font-size: 12px;
+  margin-top: 4px;
+  font-weight: 500;
+}
+
+.actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin: 6px 0 14px;
+  color: #0ba360;
+  font-weight: 600;
+  font-size: 12px;
+}
+
+.primary-btn {
+  width: 100%;
+  background: linear-gradient(135deg, #0ba360 0%, #0a8f50 100%);
+  color: #fff;
+  border: none;
+  border-radius: 12px;
+  padding: 12px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 14px 24px rgba(11, 163, 96, 0.25);
+  transition: transform 0.1s, box-shadow 0.2s;
+}
+
+.primary-btn:hover {
+  box-shadow: 0 16px 30px rgba(11, 163, 96, 0.3);
+}
+
+.primary-btn:active {
+  transform: translateY(1px);
+}
+
+.auth-footer {
+  margin: 16px 0 20px;
+  text-align: center;
+  color: #4f5b67;
+  font-size: 13px;
+}
+
+.link {
+  color: #0ba360;
+  font-weight: 700;
+  text-decoration: none;
+  margin-left: 6px;
+}
+
+.link:hover {
+  text-decoration: underline;
+}
+
+@media (max-width: 768px) {
+  .auth-page {
+    height: 100dvh; /* Dynamic viewport height for mobile */
+  }
+
+  .hero {
+    padding: 16px 18px 20px;
+    gap: 6px;
+  }
+
+  .hero-logo {
+    width: 44px;
+    height: 44px;
+    font-size: 20px;
+  }
+
+  .hero-title {
+    font-size: 18px;
+  }
+
+  .hero-sub {
+    font-size: 12px;
+  }
+
+  .auth-card {
+    padding: 18px 16px 20px;
+    margin-top: 8px;
+  }
+
+  .auth-heading h1 {
+    font-size: 20px;
+    margin-bottom: 3px;
+  }
+
+  .auth-heading p {
+    font-size: 12px;
+    margin-bottom: 14px;
+  }
+
+  .fields {
+    gap: 10px;
+    margin-bottom: 6px;
+  }
+
+  .field-box {
+    padding: 9px 11px;
+  }
+
+  .actions {
+    margin: 4px 0 12px;
+    font-size: 11px;
+  }
+
+  .primary-btn {
+    padding: 11px;
+    font-size: 13px;
+  }
+
+  .auth-footer {
+    margin: 12px 0 16px;
+    font-size: 12px;
+  }
+}
+
+

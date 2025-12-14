@@ -1,0 +1,351 @@
+.driver-mode-container {
+  height: 100vh;
+  max-height: 100vh;
+  background: #f5f5f5;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Header */
+.driver-mode-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 20px;
+  background: #ffffff;
+  border-bottom: 1px solid #e5e7eb;
+  flex-shrink: 0;
+  z-index: 100;
+  position: relative;
+}
+
+.driver-mode-header-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.driver-mode-back-button {
+  background: #f3f4f6;
+  border: none;
+  padding: 8px 12px;
+  cursor: pointer;
+  color: #1a1a1a;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.driver-mode-back-button:hover {
+  background: #e5e7eb;
+  transform: translateX(-2px);
+}
+
+.driver-mode-back-icon {
+  font-size: 18px;
+  line-height: 1;
+}
+
+.driver-mode-back-text {
+  font-size: 14px;
+}
+
+.driver-mode-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: #1a1a1a;
+  margin: 0;
+  flex: 1;
+  text-align: center;
+}
+
+.driver-mode-status-badge-small {
+  background: #e5e7eb;
+  color: #6b7280;
+  padding: 6px 12px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+  min-width: 80px;
+  text-align: center;
+}
+
+.driver-mode-status-badge-small.online {
+  background: #d1fae5;
+  color: #059669;
+}
+
+.driver-mode-status-badge-small.offline {
+  background: #e5e7eb;
+  color: #6b7280;
+}
+
+/* Map */
+.driver-mode-map {
+  flex: 1;
+  width: 100%;
+  position: relative;
+  background: #e5e7eb;
+  overflow: hidden;
+  min-height: 0;
+  display: flex;
+}
+
+.driver-mode-mapbox {
+  width: 100%;
+  height: 100%;
+  flex: 1;
+}
+
+/* Focus to location button */
+.driver-mode-focus-btn {
+  position: absolute;
+  bottom: 100px;
+  right: 16px;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background-color: #ffffff;
+  border: 2px solid #e5e7eb;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 10;
+  transition: all 0.2s;
+  color: #3b82f6;
+}
+
+.driver-mode-focus-btn:hover {
+  background-color: #f3f4f6;
+  border-color: #3b82f6;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  transform: scale(1.05);
+}
+
+.driver-mode-focus-btn:active {
+  transform: scale(0.95);
+}
+
+/* Status Panel */
+.driver-mode-status-panel {
+  background: #ffffff;
+  border-radius: 20px 20px 0 0;
+  padding: 8px 20px 8px;
+  margin-top: -20px;
+  position: relative;
+  z-index: 10;
+  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.driver-mode-toggle-btn {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  border: none;
+  font-size: 12px;
+  font-weight: 700;
+  color: #ffffff;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  margin-bottom: 6px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+}
+
+.driver-mode-toggle-btn.offline {
+  background: #374151;
+}
+
+.driver-mode-toggle-btn.offline:hover:not(:disabled) {
+  background: #1f2937;
+  transform: scale(1.05);
+}
+
+.driver-mode-toggle-btn.online {
+  background: #10b981;
+}
+
+.driver-mode-toggle-btn.online:hover:not(:disabled) {
+  background: #059669;
+  transform: scale(1.05);
+}
+
+.driver-mode-toggle-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.driver-mode-status-text {
+  font-size: 13px;
+  font-weight: 700;
+  color: #1a1a1a;
+  margin: 0 0 2px 0;
+}
+
+.driver-mode-status-instruction {
+  font-size: 11px;
+  color: #6b7280;
+  margin: 0 0 2px 0;
+  text-align: center;
+}
+
+.driver-mode-warning {
+  font-size: 10px;
+  color: #ef4444;
+  margin: 2px 0 0 0;
+  text-align: center;
+  padding: 4px 8px;
+  background: #fef2f2;
+  border-radius: 6px;
+  width: 100%;
+}
+
+/* Vehicle Info Bar */
+.driver-mode-vehicle-bar {
+  background: #ffffff;
+  padding: 12px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-top: 1px solid #e5e7eb;
+  flex-shrink: 0;
+}
+
+.driver-mode-vehicle-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+  min-width: 0;
+}
+
+.driver-mode-vehicle-icon {
+  width: 24px;
+  height: 24px;
+  color: #6b7280;
+  flex-shrink: 0;
+}
+
+.driver-mode-vehicle-details {
+  flex: 1;
+  min-width: 0;
+}
+
+.driver-mode-vehicle-name {
+  font-size: 16px;
+  font-weight: 600;
+  color: #1a1a1a;
+  margin-bottom: 4px;
+}
+
+.driver-mode-vehicle-plate {
+  font-size: 14px;
+  color: #6b7280;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.driver-mode-vehicle-plate::before {
+  content: '';
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #8b5cf6;
+  display: inline-block;
+}
+
+.driver-mode-edit-btn {
+  background: #f3f4f6;
+  color: #374151;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.driver-mode-edit-btn:hover {
+  background: #e5e7eb;
+}
+
+/* Loading & Error States */
+.driver-mode-loading,
+.driver-mode-error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  min-height: 50vh;
+}
+
+.driver-mode-spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid #f3f4f6;
+  border-top-color: #009b77;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 16px;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.driver-mode-error {
+  color: #ef4444;
+}
+
+.driver-mode-error .driver-mode-back-btn {
+  margin-top: 16px;
+  padding: 10px 20px;
+  background: #009b77;
+  color: #ffffff;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+/* Responsive */
+@media (max-width: 480px) {
+  .driver-mode-header {
+    padding: 10px 16px;
+  }
+  
+  .driver-mode-title {
+    font-size: 16px;
+  }
+  
+  .driver-mode-status-panel {
+    padding: 6px 16px 6px;
+  }
+  
+  .driver-mode-toggle-btn {
+    width: 48px;
+    height: 48px;
+    font-size: 11px;
+  }
+}
+
+
+
