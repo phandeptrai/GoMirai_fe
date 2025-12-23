@@ -7,4 +7,8 @@ export default defineConfig({
   server: {
     port: 3000,
   },
+  // Fix for sockjs-client which uses Node.js global object
+  define: {
+    global: 'globalThis',
+  },
 })

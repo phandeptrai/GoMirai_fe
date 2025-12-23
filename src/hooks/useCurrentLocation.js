@@ -37,7 +37,7 @@ const useCurrentLocation = (showModal = false) => {
   // Reverse geocoding để lấy địa chỉ từ tọa độ
   const getAddressFromCoords = async (lat, lng) => {
     try {
-      const mapboxToken = import.meta.env.VITE_MAPBOX_TOKEN;
+      const mapboxToken = 'pk.eyJ1IjoicGhhbmRlcHRyYWkiLCJhIjoiY21pbDRwcDI1MTA2NzNkcTM0b2xlOHVodCJ9.xsAMbskqFIZLNvTzHGk3jw';
       const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${lng},${lat}.json?access_token=${mapboxToken}&limit=1&country=VN`;
       
       const response = await fetch(url);

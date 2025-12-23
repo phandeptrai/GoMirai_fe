@@ -331,21 +331,18 @@
   .driver-mode-header {
     padding: 10px 16px;
   }
-  
+
   .driver-mode-title {
     font-size: 16px;
   }
-  
+
   .driver-mode-status-panel {
     padding: 6px 16px 6px;
   }
-  
+
   .driver-mode-toggle-btn {
     width: 48px;
     height: 48px;
     font-size: 11px;
   }
 }
-
-
-

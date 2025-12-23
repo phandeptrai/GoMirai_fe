@@ -10,9 +10,7 @@ const MapboxMap = ({
   destinationMarker = null,
   driverMarker = null, // Vị trí tài xế realtime
   routePolyline = null, // Polyline cho route
-  onMapClick = null,
-  focusLocation = null, // Location to focus on {lat, lng}
-  navigationMode = false, // Navigation mode with higher zoom
+  onMapClick = null
 }) => {
   const { location: currentLocation, loading: locationLoading } = useCurrentLocation();
   
@@ -20,11 +18,9 @@ const MapboxMap = ({
     latitude: 10.7769,
     longitude: 106.7009,
     zoom: 13,
-    pitch: 0,
-    bearing: 0,
   });
 
-  const token = import.meta.env.VITE_MAPBOX_TOKEN;
+  const token = 'pk.eyJ1IjoicGhhbmRlcHRyYWkiLCJhIjoiY21pbDRwcDI1MTA2NzNkcTM0b2xlOHVodCJ9.xsAMbskqFIZLNvTzHGk3jw';
 
   // Set initial view to current location if available
   useEffect(() => {
@@ -38,11 +34,8 @@ const MapboxMap = ({
     }
   }, [currentLocation]);
 
-  // Update view when markers change (but not in navigation mode)
+  // Update view when markers change
   useEffect(() => {
-    // Don't auto-update view if in navigation mode (navigation mode effect handles it)
-    if (navigationMode) return;
-    
     if (pickupMarker) {
       setViewState(prev => ({
         ...prev,
@@ -59,11 +52,10 @@ const MapboxMap = ({
         zoom: 15,
       }));
     }
-  }, [pickupMarker, currentLocation, destinationMarker, driverMarker, navigationMode]);
+  }, [pickupMarker, currentLocation, destinationMarker, driverMarker]);
 
   useEffect(() => {
-    // Don't auto-focus to destinationMarker if in navigation mode (driver should be focused)
-    if (destinationMarker && !pickupMarker && !navigationMode) {
+    if (destinationMarker && !pickupMarker) {
       setViewState(prev => ({
         ...prev,
         latitude: destinationMarker.lat,
@@ -71,7 +63,7 @@ const MapboxMap = ({
         zoom: 15,
       }));
     }
-  }, [destinationMarker, navigationMode, pickupMarker]);
+  }, [destinationMarker]);
 
   if (!token) {
     return (
@@ -180,11 +172,8 @@ const MapboxMap = ({
     return null;
   }, [routePolyline]);
 
-  // Update view to fit route bounds if route exists (but not in navigation mode)
+  // Update view to fit route bounds if route exists
   useEffect(() => {
-    // Don't auto-fit route bounds if in navigation mode (navigation mode effect handles it)
-    if (navigationMode) return;
-    
     if (routeGeoJSON && routeGeoJSON.geometry && routeGeoJSON.geometry.coordinates) {
       const coordinates = routeGeoJSON.geometry.coordinates;
       if (coordinates.length > 0) {
@@ -205,95 +194,7 @@ const MapboxMap = ({
         }));
       }
     }
-  }, [routeGeoJSON, navigationMode]);
-
-  // Focus to location when focusLocation prop changes
-  useEffect(() => {
-    if (focusLocation && focusLocation.lat && focusLocation.lng) {
-      setViewState(prev => ({
-        ...prev,
-        latitude: focusLocation.lat,
-        longitude: focusLocation.lng,
-        zoom: navigationMode ? 18 : 16, // Higher zoom for navigation mode (like Google Maps)
-        pitch: navigationMode ? 50 : 0, // 3D view for navigation
-        bearing: navigationMode ? (prev.bearing || 0) : 0, // Keep bearing if in navigation mode
-      }));
-    }
-  }, [focusLocation, navigationMode]);
-
-  // Navigation mode: Auto-update view when driver location changes (like Google Maps)
-  useEffect(() => {
-    if (!navigationMode || !driverMarker) return;
-    
-    // Calculate bearing from current position to next point on route
-    const calculateBearing = (from, to) => {
-      const lat1 = from.lat * Math.PI / 180;
-      const lat2 = to.lat * Math.PI / 180;
-      const dLon = (to.lng - from.lng) * Math.PI / 180;
-      
-      const y = Math.sin(dLon) * Math.cos(lat2);
-      const x = Math.cos(lat1) * Math.sin(lat2) - Math.sin(lat1) * Math.cos(lat2) * Math.cos(dLon);
-      
-      const bearing = Math.atan2(y, x) * 180 / Math.PI;
-      return (bearing + 360) % 360;
-    };
-
-    let bearing = 0;
-    
-    // If we have route, calculate bearing from driver to next point
-    if (routePolyline && Array.isArray(routePolyline) && routePolyline.length > 1) {
-      const routeCoords = routePolyline.map(coord => {
-        if (Array.isArray(coord)) {
-          return { lng: coord[0], lat: coord[1] };
-        }
-        return { lng: coord.longitude || coord.lng, lat: coord.latitude || coord.lat };
-      });
-
-      if (routeCoords.length > 1) {
-        // Find closest point on route to driver
-        let closestIndex = 0;
-        let minDistance = Infinity;
-        
-        routeCoords.forEach((coord, index) => {
-          const distance = Math.sqrt(
-            Math.pow(coord.lat - driverMarker.lat, 2) + 
-            Math.pow(coord.lng - driverMarker.lng, 2)
-          );
-          if (distance < minDistance) {
-            minDistance = distance;
-            closestIndex = index;
-          }
-        });
-
-        // Get next point (at least 5 points ahead for smoother bearing calculation)
-        const nextIndex = Math.min(closestIndex + 5, routeCoords.length - 1);
-        const nextPoint = routeCoords[nextIndex];
-        
-        if (nextPoint) {
-          bearing = calculateBearing(driverMarker, nextPoint);
-        }
-      }
-    }
-    
-    // Update view with navigation mode settings (like Google Maps)
-    setViewState(prev => {
-      // Only update if driver location changed significantly (avoid jitter)
-      const latDiff = Math.abs(prev.latitude - driverMarker.lat);
-      const lngDiff = Math.abs(prev.longitude - driverMarker.lng);
-      const shouldUpdate = latDiff > 0.00005 || lngDiff > 0.00005 || prev.zoom < 17;
-      
-      if (shouldUpdate) {
-        return {
-          latitude: driverMarker.lat,
-          longitude: driverMarker.lng,
-          zoom: 18, // High zoom like Google Maps navigation
-          pitch: 50, // 3D view angle
-          bearing: bearing || prev.bearing, // Rotate map to face direction of travel
-        };
-      }
-      return prev;
-    });
-  }, [navigationMode, driverMarker?.lat, driverMarker?.lng, routePolyline]);
+  }, [routeGeoJSON]);
 
   return (
     <div className={`relative ${className}`} style={{ height, width: '100%' }}>

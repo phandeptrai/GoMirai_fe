@@ -46,7 +46,7 @@ const LocationInput = ({
     setIsLoading(true);
     try {
       // Tạm thời gọi trực tiếp Mapbox API để tránh lỗi authentication
-      const mapboxToken = import.meta.env.VITE_MAPBOX_TOKEN;
+      const mapboxToken = 'pk.eyJ1IjoicGhhbmRlcHRyYWkiLCJhIjoiY21pbDRwcDI1MTA2NzNkcTM0b2xlOHVodCJ9.xsAMbskqFIZLNvTzHGk3jw';
       const proximity = currentLocation 
         ? `${currentLocation.lng},${currentLocation.lat}` 
         : '106.7009,10.7769';

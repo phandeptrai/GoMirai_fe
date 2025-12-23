@@ -84,10 +84,12 @@ export const bookingAPI = {
   },
 
   /**
-   * Customer cancel booking
+   * Customer cancel booking with reason
+   * @param {string} bookingId - Booking ID
+   * @param {string} reason - Cancellation reason
    */
-  cancelBooking: async (bookingId) => {
-    const response = await apiClient.patch(`/api/booking/${bookingId}/cancel`);
+  cancelBooking: async (bookingId, reason) => {
+    const response = await apiClient.post(`/api/booking/${bookingId}/cancel`, { reason });
     return response.data?.data || response.data;
   },
 };

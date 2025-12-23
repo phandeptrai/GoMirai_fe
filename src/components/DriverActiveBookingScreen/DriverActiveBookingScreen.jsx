@@ -8,13 +8,16 @@ import { trackingAPI } from '../../api/tracking.api';
 import MapboxMap from '../MapboxMap';
 import { Icons } from '../constants';
 import useCurrentLocation from '../../hooks/useCurrentLocation';
+// useDriverWebSocket removed - WebSocket now handled by NotificationService
 import './DriverActiveBookingScreen.css';
 
 const DriverActiveBookingScreen = () => {
   const { bookingId } = useParams();
   const navigate = useNavigate();
   const { location: currentLocation } = useCurrentLocation();
-  
+
+  // WebSocket removed - NotificationService handles realtime via Kafka
+
   const [booking, setBooking] = useState(null);
   const [customer, setCustomer] = useState(null);
   const [driverProfile, setDriverProfile] = useState(null);
@@ -23,7 +26,7 @@ const DriverActiveBookingScreen = () => {
   const [arriving, setArriving] = useState(false);
   const [starting, setStarting] = useState(false);
   const [completing, setCompleting] = useState(false);
-  
+
   // Map states
   const [routePolyline, setRoutePolyline] = useState(null);
   const [driverLocation, setDriverLocation] = useState(null);
@@ -31,17 +34,19 @@ const DriverActiveBookingScreen = () => {
   const [routeSteps, setRouteSteps] = useState([]); // Navigation steps
   const [currentStepIndex, setCurrentStepIndex] = useState(0); // Current navigation step
 
+  // WebSocket disconnect removed - not needed anymore since we use single NotificationService WebSocket
+
   // Fetch booking details
   const fetchBookingData = useCallback(async () => {
     if (!bookingId) return;
-    
+
     try {
       setError(null);
-      
+
       // Fetch booking
       const bookingData = await bookingAPI.getBooking(bookingId);
       setBooking(bookingData);
-      
+
       // Fetch customer info if not already loaded or if customer changed
       if (bookingData.customerId) {
         try {
@@ -62,11 +67,11 @@ const DriverActiveBookingScreen = () => {
       try {
         setLoading(true);
         setError(null);
-        
+
         // Fetch driver profile
         const profile = await driverAPI.getMyProfile();
         setDriverProfile(profile);
-        
+
         // Fetch booking
         await fetchBookingData();
       } catch (err) {
@@ -82,7 +87,10 @@ const DriverActiveBookingScreen = () => {
     }
   }, [bookingId, fetchBookingData]);
 
-  // Poll booking status to detect changes (especially when status changes)
+  // DISABLED: Polling is not needed for driver
+  // Driver manually changes status via buttons, no need to poll
+  // Customer uses WebSocket for realtime updates instead
+  /*
   useEffect(() => {
     if (!bookingId || !booking) return;
     
@@ -109,11 +117,12 @@ const DriverActiveBookingScreen = () => {
     
     return () => clearInterval(interval);
   }, [bookingId, booking?.status, fetchBookingData]);
+*/
 
   // Update driver location and fetch route
   useEffect(() => {
     if (!booking || !currentLocation) return;
-    
+
     const status = booking.status;
     if (status === 'MATCHED' || status === 'DRIVER_ARRIVED' || status === 'IN_PROGRESS') {
       // Update driver location
@@ -121,7 +130,7 @@ const DriverActiveBookingScreen = () => {
         lat: currentLocation.lat,
         lng: currentLocation.lng,
       });
-      
+
       // Fetch route from current location to pickup (only for MATCHED status)
       if (booking.pickupLocation && status === 'MATCHED') {
         const fetchRoute = async () => {
@@ -130,7 +139,7 @@ const DriverActiveBookingScreen = () => {
               driver: { lat: currentLocation.lat, lng: currentLocation.lng },
               pickup: { lat: booking.pickupLocation.latitude, lng: booking.pickupLocation.longitude }
             });
-            
+
             const route = await mapAPI.getRoute(
               currentLocation.lat,
               currentLocation.lng,
@@ -138,16 +147,16 @@ const DriverActiveBookingScreen = () => {
               booking.pickupLocation.longitude,
               'driving'
             );
-            
+
             console.log('[DriverActiveBooking] Route to pickup response:', route);
-            
+
             // Save navigation steps
             if (route?.steps && Array.isArray(route.steps)) {
               setRouteSteps(route.steps);
               setCurrentStepIndex(0);
               console.log('[DriverActiveBooking] ✓ Navigation steps loaded for pickup:', route.steps.length);
             }
-            
+
             // Handle RouteResponse format from MapService - convert to Mapbox format
             if (route?.geometry && Array.isArray(route.geometry)) {
               // Convert GeoPoint array to coordinate array for MapboxMap
@@ -170,7 +179,7 @@ const DriverActiveBookingScreen = () => {
                 }
                 return null;
               }).filter(coord => coord !== null);
-              
+
               console.log('[DriverActiveBooking] ✓ Route geometry converted for pickup, coordinates length:', coordinates.length);
               if (coordinates.length > 0) {
                 setRoutePolyline(coordinates);
@@ -210,10 +219,10 @@ const DriverActiveBookingScreen = () => {
             console.warn('[DriverActiveBooking] Could not fetch route to pickup:', err);
           }
         };
-        
+
         fetchRoute();
       }
-      
+
       // For IN_PROGRESS: Fetch route from current driver location to dropoff (realtime)
       if (status === 'IN_PROGRESS' && booking.dropoffLocation) {
         const fetchRoute = async () => {
@@ -222,7 +231,7 @@ const DriverActiveBookingScreen = () => {
               driver: { lat: currentLocation.lat, lng: currentLocation.lng },
               dropoff: { lat: booking.dropoffLocation.latitude, lng: booking.dropoffLocation.longitude }
             });
-            
+
             const route = await mapAPI.getRoute(
               currentLocation.lat,
               currentLocation.lng,
@@ -230,16 +239,16 @@ const DriverActiveBookingScreen = () => {
               booking.dropoffLocation.longitude,
               'driving'
             );
-            
+
             console.log('[DriverActiveBooking] Route response:', route);
-            
+
             // Save navigation steps
             if (route?.steps && Array.isArray(route.steps)) {
               setRouteSteps(route.steps);
               setCurrentStepIndex(0); // Reset to first step
               console.log('[DriverActiveBooking] ✓ Navigation steps loaded:', route.steps.length);
             }
-            
+
             // Handle RouteResponse format from MapService
             if (route?.geometry && Array.isArray(route.geometry)) {
               // Convert GeoPoint array to coordinate array for MapboxMap
@@ -261,7 +270,7 @@ const DriverActiveBookingScreen = () => {
                 }
                 return null;
               }).filter(coord => coord !== null);
-              
+
               console.log('[DriverActiveBooking] ✓ Route geometry converted, coordinates length:', coordinates.length);
               if (coordinates.length > 0) {
                 setRoutePolyline(coordinates);
@@ -282,7 +291,7 @@ const DriverActiveBookingScreen = () => {
             console.warn('[DriverActiveBooking] Could not fetch route to dropoff:', err);
           }
         };
-        
+
         fetchRoute();
       }
     }
@@ -291,11 +300,11 @@ const DriverActiveBookingScreen = () => {
   // Update location periodically
   useEffect(() => {
     if (!booking || !driverProfile || !currentLocation) return;
-    
+
     const status = booking.status;
     // Only update location for active bookings
     if (status !== 'MATCHED' && status !== 'DRIVER_ARRIVED' && status !== 'IN_PROGRESS') return;
-    
+
     const updateLocation = async () => {
       try {
         // Update location via tracking API
@@ -307,7 +316,7 @@ const DriverActiveBookingScreen = () => {
           vehicleType: driverProfile.vehicle?.type || 'MOTORBIKE',
           lastUpdatedAt: Date.now()
         });
-        
+
         setDriverLocation({
           lat: currentLocation.lat,
           lng: currentLocation.lng,
@@ -316,36 +325,36 @@ const DriverActiveBookingScreen = () => {
         console.warn('Failed to update location:', err);
       }
     };
-    
+
     // Update immediately
     updateLocation();
-    
+
     // Update every 5 seconds
     const interval = setInterval(updateLocation, 5000);
-    
+
     return () => clearInterval(interval);
   }, [booking, driverProfile, currentLocation]);
 
   // Update route for IN_PROGRESS (realtime route update when driver moves)
   useEffect(() => {
     if (!booking || !currentLocation) return;
-    
+
     const status = booking.status;
     if (status !== 'IN_PROGRESS' || !booking.dropoffLocation) return;
-    
+
     let lastDriverLat = null;
     let lastDriverLng = null;
-    
+
     const updateRouteToDropoff = async () => {
       // Check if driver location has changed significantly (more than ~10 meters)
       const hasChanged = lastDriverLat === null || lastDriverLng === null ||
         Math.abs(currentLocation.lat - lastDriverLat) > 0.0001 ||
         Math.abs(currentLocation.lng - lastDriverLng) > 0.0001;
-      
+
       if (hasChanged) {
         lastDriverLat = currentLocation.lat;
         lastDriverLng = currentLocation.lng;
-        
+
         try {
           const route = await mapAPI.getRoute(
             currentLocation.lat,
@@ -354,12 +363,12 @@ const DriverActiveBookingScreen = () => {
             booking.dropoffLocation.longitude,
             'driving'
           );
-          
+
           // Save navigation steps
           if (route?.steps && Array.isArray(route.steps)) {
             setRouteSteps(route.steps);
           }
-          
+
           if (route?.geometry && Array.isArray(route.geometry)) {
             const coordinates = route.geometry.map(point => {
               if (typeof point === 'object' && point !== null) {
@@ -379,7 +388,7 @@ const DriverActiveBookingScreen = () => {
               }
               return null;
             }).filter(coord => coord !== null);
-            
+
             if (coordinates.length > 0) {
               setRoutePolyline(coordinates);
             }
@@ -391,11 +400,11 @@ const DriverActiveBookingScreen = () => {
         }
       }
     };
-    
+
     // Update route every 5 seconds when driver moves
     const routeInterval = setInterval(updateRouteToDropoff, 5000);
     updateRouteToDropoff(); // Initial call
-    
+
     return () => clearInterval(routeInterval);
   }, [booking?.status, booking?.dropoffLocation, currentLocation]);
 
@@ -403,7 +412,7 @@ const DriverActiveBookingScreen = () => {
   // Update focus when driver moves during trip
   useEffect(() => {
     if (!booking || !currentLocation) return;
-    
+
     const status = booking.status;
     if (status === 'IN_PROGRESS') {
       // Auto-focus to driver's current location for navigation view
@@ -415,7 +424,7 @@ const DriverActiveBookingScreen = () => {
           lng: currentLocation.lng,
         });
       }, 100);
-      
+
       return () => clearTimeout(timeoutId);
     } else if (status === 'MATCHED' || status === 'DRIVER_ARRIVED') {
       // For MATCHED and DRIVER_ARRIVED, also focus on current location
@@ -445,7 +454,7 @@ const DriverActiveBookingScreen = () => {
       if (step.location) {
         const stepLat = step.location.latitude || step.location.lat;
         const stepLng = step.location.longitude || step.location.lng;
-        
+
         if (stepLat !== undefined && stepLng !== undefined) {
           // Calculate distance using Haversine formula
           const R = 6371e3; // Earth radius in meters
@@ -454,10 +463,10 @@ const DriverActiveBookingScreen = () => {
           const Δφ = (stepLat - currentLocation.lat) * Math.PI / 180;
           const Δλ = (stepLng - currentLocation.lng) * Math.PI / 180;
 
-          const a = Math.sin(Δφ/2) * Math.sin(Δφ/2) +
-                    Math.cos(φ1) * Math.cos(φ2) *
-                    Math.sin(Δλ/2) * Math.sin(Δλ/2);
-          const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+          const a = Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
+            Math.cos(φ1) * Math.cos(φ2) *
+            Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
+          const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
           const distance = R * c; // Distance in meters
 
           // Prefer steps ahead of driver (index > currentStepIndex)
@@ -478,11 +487,11 @@ const DriverActiveBookingScreen = () => {
 
   const handleArrived = async () => {
     if (arriving || !booking) return;
-    
+
     try {
       setArriving(true);
       await bookingAPI.driverArrived(bookingId);
-      
+
       // Refresh booking to get updated status
       const updatedBooking = await bookingAPI.getBooking(bookingId);
       setBooking(updatedBooking);
@@ -498,11 +507,11 @@ const DriverActiveBookingScreen = () => {
 
   const handleStartTrip = async () => {
     if (starting || !booking) return;
-    
+
     try {
       setStarting(true);
       await bookingAPI.startTrip(bookingId);
-      
+
       // Immediately focus to current location when trip starts
       if (currentLocation) {
         setFocusLocation({
@@ -510,7 +519,7 @@ const DriverActiveBookingScreen = () => {
           lng: currentLocation.lng,
         });
       }
-      
+
       // Refresh booking to get updated status
       await fetchBookingData();
       console.log('[DriverActiveBooking] Trip started, status updated to IN_PROGRESS');
@@ -525,14 +534,14 @@ const DriverActiveBookingScreen = () => {
 
   const handleCompleteTrip = async () => {
     if (completing || !booking) return;
-    
+
     try {
       setCompleting(true);
-      
+
       // Calculate actual distance and duration
       // Use actualDistanceKm if available, otherwise use estimatedDistanceKm
       const actualDistanceKm = booking.actualDistanceKm || booking.estimatedDistanceKm || 0;
-      
+
       // Calculate actual duration from start time to now
       let actualDurationMinutes = booking.actualDurationMinutes;
       if (!actualDurationMinutes && booking.actualPickupTime) {
@@ -543,24 +552,24 @@ const DriverActiveBookingScreen = () => {
         // Fallback to estimated duration if no start time
         actualDurationMinutes = booking.estimatedDurationMinutes || 1;
       }
-      
+
       // Prepare request data
       const completeData = {
         actualDistanceKm: actualDistanceKm,
         actualDurationMinutes: actualDurationMinutes
       };
-      
+
       console.log('[DriverActiveBooking] Completing trip with data:', completeData);
-      
+
       await bookingAPI.completeTrip(bookingId, completeData);
-      
+
       // Refresh booking to get updated status
       await fetchBookingData();
       console.log('[DriverActiveBooking] Trip completed, status updated to COMPLETED');
-      
+
       // Optionally navigate to completed screen or show success message
       alert('Chuyến đi đã hoàn thành!');
-      
+
       // Navigate back to driver mode after completion
       setTimeout(() => {
         navigate('/driver');
@@ -703,7 +712,7 @@ const DriverActiveBookingScreen = () => {
               const isCurrentStep = index === currentStepIndex;
               const isPassed = index < currentStepIndex;
               const distance = step.distance ? (step.distance < 1000 ? `${Math.round(step.distance)}m` : `${(step.distance / 1000).toFixed(2)}km`) : '';
-              
+
               return (
                 <div
                   key={index}

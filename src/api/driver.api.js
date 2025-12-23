@@ -71,6 +71,22 @@ export const driverAPI = {
   },
 
   /**
+   * Get full driver profile by ID
+   */
+  getProfile: async (driverId) => {
+    const response = await apiClient.get(`/api/drivers/${driverId}`);
+    return response.data?.data || response.data;
+  },
+
+  /**
+   * Get driver profile by userId (when booking stores userId instead of driverId)
+   */
+  getProfileByUserId: async (userId) => {
+    const response = await apiClient.get(`/api/drivers/user/${userId}`);
+    return response.data?.data || response.data;
+  },
+
+  /**
    * Get active booking offers for current driver
    */
   getBookingOffers: async () => {

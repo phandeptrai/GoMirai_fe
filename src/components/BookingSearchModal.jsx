@@ -10,8 +10,9 @@ import { Icons } from './constants';
 import './BookingSearchModal.css';
 
 const BookingSearchModal = ({ isOpen, onClose }) => {
+  const navigate = useNavigate();
   const { location: currentLocation, loading: locationLoading } = useCurrentLocation();
-  
+
   const [pickupLocation, setPickupLocation] = useState('Đang lấy vị trí...');
   const [pickupCoords, setPickupCoords] = useState({ lat: 10.7716, lng: 106.7044 });
   const [destination, setDestination] = useState('');
@@ -34,7 +35,7 @@ const BookingSearchModal = ({ isOpen, onClose }) => {
   useEffect(() => {
     if (pickupCoords && destinationCoords) {
       setIsCalculatingDistance(true);
-      
+
       // Tính khoảng cách bằng Haversine ngay lập tức (ước tính nhanh)
       const haversineDistance = calculateHaversineDistance(pickupCoords, destinationCoords);
       setEstimatedDistance(haversineDistance);
@@ -79,8 +80,8 @@ const BookingSearchModal = ({ isOpen, onClose }) => {
       <div className="booking-modal-content" onClick={(e) => e.stopPropagation()}>
         {/* Map Background */}
         <div className="booking-modal-map">
-          <MapboxMap 
-            height="100%" 
+          <MapboxMap
+            height="100%"
             pickupMarker={pickupCoords}
             destinationMarker={destinationCoords}
             focusLocation={focusLocation}
@@ -225,15 +226,15 @@ const BookingSearchModal = ({ isOpen, onClose }) => {
         isDistanceEstimated={isEstimated}
         onConfirm={(bookingData) => {
           console.log('Booking confirmed:', bookingData);
-          
+
           // Xử lý khi đặt xe thành công
           if (bookingData.booking) {
             const bookingId = bookingData.booking.bookingId;
-            
+
             // Đóng modal
             setShowVehicleModal(false);
             onClose();
-            
+
             // Navigate đến màn hình chi tiết booking để theo dõi
             navigate(`/activity/${bookingId}`);
           }

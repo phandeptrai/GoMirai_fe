@@ -1,7 +1,8 @@
-import { useState, useEffect, useRef } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { bookingAPI } from '../../api/booking.api';
 import { formatDateWithYesterday } from '../../utils/dateTime';
+import { useAuth } from '../../contexts/AuthContext';
 import './ActivityScreen.css';
 
 // Map BookingStatus sang tiếng Việt
@@ -26,31 +27,40 @@ const formatDate = formatDateWithYesterday;
 // Format giá tiền
 const formatPrice = (priceSnapshot) => {
   if (!priceSnapshot) return '0₫';
-  
+
   const amount = priceSnapshot.finalAmount || priceSnapshot.estimatedFare || 0;
   return `${amount.toLocaleString('vi-VN')}₫`;
 };
 
 const ActivityScreen = () => {
   const navigate = useNavigate();
-  const location = useLocation();
+  const { user } = useAuth();
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const pollingIntervalRef = useRef(null);
+
+  // Determine if user is a driver
+  const isDriver = user?.role === 'DRIVER';
 
   useEffect(() => {
     const fetchBookings = async () => {
       try {
         setLoading(true);
         setError(null);
-        
-        // Lấy tất cả bookings của customer (không filter theo status)
-        const response = await bookingAPI.getCustomerBookings(null, 0, 50);
-        
+
+        // Gọi API phù hợp dựa trên role của user
+        let response;
+        if (isDriver) {
+          // Driver: lấy danh sách bookings đã nhận
+          response = await bookingAPI.getDriverBookings(null, 0, 50);
+        } else {
+          // Customer: lấy danh sách bookings đã đặt
+          response = await bookingAPI.getCustomerBookings(null, 0, 50);
+        }
+
         // Response có thể là Page object với content array hoặc trực tiếp là array
         const bookingsList = response?.content || response?.data || response || [];
-        
+
         setBookings(Array.isArray(bookingsList) ? bookingsList : []);
       } catch (err) {
         console.error('Error fetching bookings:', err);
@@ -62,83 +72,7 @@ const ActivityScreen = () => {
     };
 
     fetchBookings();
-  }, []);
-
-  // Polling để detect khi tài xế nhận chuyến (PENDING → MATCHED) và tự động navigate
-  useEffect(() => {
-    // Không polling nếu đang ở activity detail page
-    if (location.pathname.includes('/activity/')) {
-      return;
-    }
-
-    const pollPendingBookings = async () => {
-      try {
-        // Lấy danh sách bookings PENDING và MATCHED của customer để check
-        const pendingBookings = await bookingAPI.getCustomerBookings('PENDING', 0, 10);
-        const matchedBookings = await bookingAPI.getCustomerBookings('MATCHED', 0, 10);
-        
-        const pendingList = pendingBookings?.content || pendingBookings?.data || pendingBookings || [];
-        const matchedList = matchedBookings?.content || matchedBookings?.data || matchedBookings || [];
-        
-        // DISABLED: Tự động navigate khi tìm thấy booking MATCHED
-        // Người dùng muốn tự quyết định khi nào xem chi tiết booking
-        // if (matchedList.length > 0) {
-        //   // Lấy booking MATCHED đầu tiên và navigate
-        //   const matchedBooking = matchedList[0];
-        //   console.log('[ActivityScreen] Found MATCHED booking, navigating to activity detail:', matchedBooking.bookingId);
-        //   // Dừng polling
-        //   if (pollingIntervalRef.current) {
-        //     clearInterval(pollingIntervalRef.current);
-        //     pollingIntervalRef.current = null;
-        //   }
-        //   // Navigate đến màn hình chi tiết booking
-        //   navigate(`/activity/${matchedBooking.bookingId}`);
-        //   return;
-        // }
-        
-        // Nếu không có MATCHED, check các booking PENDING để xem có chuyển sang MATCHED không
-        if (pendingList.length > 0) {
-          // Check từng booking để xem có booking nào chuyển sang MATCHED không
-          for (const booking of pendingList) {
-            try {
-              const latestBooking = await bookingAPI.getBooking(booking.bookingId);
-              
-              // DISABLED: Tự động navigate khi status chuyển sang MATCHED
-              // Người dùng muốn tự quyết định khi nào xem chi tiết booking
-              // if (latestBooking?.status === 'MATCHED') {
-              //   console.log('[ActivityScreen] Driver accepted booking, navigating to activity detail');
-              //   // Dừng polling
-              //   if (pollingIntervalRef.current) {
-              //     clearInterval(pollingIntervalRef.current);
-              //     pollingIntervalRef.current = null;
-              //   }
-              //   // Navigate đến màn hình chi tiết booking
-              //   navigate(`/activity/${latestBooking.bookingId}`);
-              //   return;
-              // }
-            } catch (err) {
-              console.warn('[ActivityScreen] Failed to check booking status:', err);
-            }
-          }
-        }
-      } catch (err) {
-        console.warn('[ActivityScreen] Failed to poll pending bookings:', err);
-      }
-    };
-
-    // Poll ngay lập tức
-    pollPendingBookings();
-
-    // Poll mỗi 2 giây để detect status change
-    pollingIntervalRef.current = setInterval(pollPendingBookings, 2000);
-
-    return () => {
-      if (pollingIntervalRef.current) {
-        clearInterval(pollingIntervalRef.current);
-        pollingIntervalRef.current = null;
-      }
-    };
-  }, [navigate, location.pathname]);
+  }, [isDriver]);
 
   if (loading) {
     return (
@@ -177,10 +111,10 @@ const ActivityScreen = () => {
         const status = booking.status || 'PENDING';
         const statusText = mapBookingStatusToVietnamese(status);
         const isCancelled = status === 'CANCELED' || status === 'CANCELLED' || status === 'EXPIRED';
-        
+
         return (
-          <div 
-            key={booking.bookingId} 
+          <div
+            key={booking.bookingId}
             className="activity-card"
             onClick={() => navigate(`/activity/${booking.bookingId}`)}
             style={{ cursor: 'pointer' }}

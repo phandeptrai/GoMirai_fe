@@ -28,16 +28,16 @@ const LoginPage = () => {
 
   const validateForm = () => {
     const newErrors = {};
-    
+
     const phoneError = validatePhoneNumber(form.phone);
     if (phoneError) {
       newErrors.phone = phoneError;
     }
-    
+
     if (!form.password || form.password.trim() === '') {
       newErrors.password = 'Mật khẩu là bắt buộc';
     }
-    
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -45,7 +45,7 @@ const LoginPage = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSubmitError('');
-    
+
     if (!validateForm()) {
       return;
     }
@@ -54,7 +54,13 @@ const LoginPage = () => {
     try {
       const result = await login(form.phone, form.password);
       if (result.success) {
-        navigate('/home');
+        // Get role from localStorage to determine where to navigate
+        const role = localStorage.getItem('role');
+        if (role === 'ADMIN') {
+          navigate('/admin/dashboard');
+        } else {
+          navigate('/home');
+        }
       } else {
         setSubmitError(result.error || 'Đăng nhập thất bại. Vui lòng thử lại.');
       }
@@ -80,11 +86,11 @@ const LoginPage = () => {
     >
       <form onSubmit={handleSubmit} className="fields">
         {submitError && (
-          <div style={{ 
-            color: '#ef4444', 
-            fontSize: '13px', 
-            padding: '8px 12px', 
-            background: '#fef2f2', 
+          <div style={{
+            color: '#ef4444',
+            fontSize: '13px',
+            padding: '8px 12px',
+            background: '#fef2f2',
             borderRadius: '8px',
             marginBottom: '8px'
           }}>

@@ -5,9 +5,14 @@ import { driverAPI } from '../../api/driver.api';
 import { userAPI } from '../../api/user.api';
 import { trackingAPI } from '../../api/tracking.api';
 import { mapAPI } from '../../api/map.api';
+import { reviewAPI } from '../../api/review.api';
 import MapboxMap from '../MapboxMap';
+import ReviewModal from '../ReviewModal';
+import CancelBookingModal from '../CancelBookingModal/CancelBookingModal';
 import { Icons } from '../constants';
 import { formatDate } from '../../utils/dateTime';
+import useNotificationWebSocket from '../../hooks/useNotificationWebSocket';
+import { useAuth } from '../../contexts/AuthContext';
 import './ActivityDetailScreen.css';
 
 // Map BookingStatus sang tiếng Việt
@@ -46,34 +51,44 @@ const mapVehicleTypeToName = (vehicleType) => {
 const ActivityDetailScreen = () => {
   const { bookingId } = useParams();
   const navigate = useNavigate();
-  
+
   const [booking, setBooking] = useState(null);
   const [driverProfile, setDriverProfile] = useState(null);
   const [driverUser, setDriverUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  
+  const [showReviewModal, setShowReviewModal] = useState(false);
+  const [showCancelModal, setShowCancelModal] = useState(false);
+  const [hasReviewed, setHasReviewed] = useState(false); // Track if already reviewed
+
   // Map states
   const [routePolyline, setRoutePolyline] = useState(null);
   const [driverLocation, setDriverLocation] = useState(null);
   const [mapCenter, setMapCenter] = useState(null);
   const [focusLocation, setFocusLocation] = useState(null);
 
+  const { currentUser } = useAuth();
+  const { lastNotification, clearNotification } = useNotificationWebSocket(currentUser?.userId);
+
+  // WebSocket removed - NotificationService handles realtime
+  // For now, customer can use polling from existing code
+  const wsConnected = false; // Disabled
+
   // Fetch booking details
   const fetchBooking = useCallback(async (showLoading = true) => {
     if (!bookingId) return;
-    
+
     try {
       if (showLoading) {
         setLoading(true);
       }
       setError(null);
-      
+
       const bookingData = await bookingAPI.getBooking(bookingId);
       setBooking(bookingData);
-      
+
       console.log('[ActivityDetail] Booking fetched, status:', bookingData.status);
-      
+
       // Set map center based on pickup location
       if (bookingData.pickupLocation) {
         setMapCenter({
@@ -81,7 +96,7 @@ const ActivityDetailScreen = () => {
           lng: bookingData.pickupLocation.longitude,
         });
       }
-      
+
       // Load route polyline based on status
       const bookingStatus = bookingData.status;
       if (bookingStatus === 'MATCHED' && bookingData.driverId) {
@@ -133,25 +148,28 @@ const ActivityDetailScreen = () => {
           console.warn('Could not fetch route:', err);
         }
       }
-      
+
       // Fetch driver info if driverId exists
+      // NOTE: BookingService stores userId in driverId field!
       if (bookingData.driverId) {
         try {
-          // Get driver profile
-          const driverData = await driverAPI.getRating(bookingData.driverId);
-          setDriverProfile(driverData);
-          
-          // Get driver user info (including phone number) if userId exists
-          if (driverData?.userId) {
-            try {
-              const userData = await userAPI.getProfile(driverData.userId);
-              setDriverUser(userData);
-            } catch (userErr) {
-              console.warn('Could not fetch driver user info:', userErr);
-            }
+          // bookingData.driverId is actually userId (backend design)
+          const driverUserId = bookingData.driverId;
+
+          // NOTE: userAPI.getProfile(driverUserId) removed - causes 403
+          // Customer cannot access other user profiles due to security
+          // Driver info is obtained from driver profile API instead
+
+          // Get driver profile by userId (vehicle, rating, driverId, and basic info)
+          try {
+            const driverProfileData = await driverAPI.getProfileByUserId(driverUserId);
+            setDriverProfile(driverProfileData);
+            console.log('[ActivityDetail] Driver profile fetched:', driverProfileData);
+          } catch (driverErr) {
+            console.warn('Could not fetch driver profile:', driverErr);
           }
         } catch (err) {
-          console.warn('Could not fetch driver profile:', err);
+          console.warn('Could not fetch driver info:', err);
         }
       }
     } catch (err) {
@@ -166,98 +184,107 @@ const ActivityDetailScreen = () => {
     fetchBooking();
   }, [fetchBooking]);
 
-  // Poll booking status liên tục để cập nhật realtime cho tất cả trạng thái
+  // Check if booking already has review
   useEffect(() => {
-    if (!bookingId || !booking) return;
-    
-    const status = booking.status;
-    // Dừng polling nếu booking đã hoàn thành hoặc hủy
-    if (status === 'COMPLETED' || status === 'CANCELED' || status === 'CANCELLED' || status === 'EXPIRED' || status === 'NO_DRIVER_FOUND') {
-      return;
-    }
-    
-    let isPolling = true;
-    
-    const pollBookingStatus = async () => {
-      if (!isPolling) return;
-      
-      try {
-        const latestBooking = await bookingAPI.getBooking(bookingId);
-        
-        // Nếu status thay đổi, cập nhật ngay lập tức
-        if (latestBooking?.status && latestBooking.status !== status) {
-          console.log('[ActivityDetail] ✓ Status changed:', status, '→', latestBooking.status);
-          
-          // Cập nhật status và toàn bộ booking data ngay lập tức
-          setBooking(prevBooking => {
-            const updated = {
-              ...prevBooking,
-              ...latestBooking,
-              status: latestBooking.status
-            };
-            return updated;
-          });
-          
-          // Refresh toàn bộ booking để lấy đầy đủ thông tin (không hiển thị loading)
-          fetchBooking(false).then(() => {
-            console.log('[ActivityDetail] ✓ Full booking data refreshed');
-          }).catch(err => {
-            console.error('[ActivityDetail] ✗ Error refreshing booking:', err);
-          });
-          
-          // Nếu chuyển sang trạng thái cuối cùng, dừng polling
-          if (latestBooking.status === 'COMPLETED' || latestBooking.status === 'CANCELED' || latestBooking.status === 'CANCELLED') {
-            isPolling = false;
-            return;
-          }
-        } else if (latestBooking) {
-          // Cập nhật các thông tin khác của booking (như timestamps, etc.) ngay cả khi status không đổi
-          setBooking(prevBooking => ({
-            ...prevBooking,
-            ...latestBooking
-          }));
+    const checkReview = async () => {
+      if (booking && booking.status === 'COMPLETED') {
+        try {
+          const exists = await reviewAPI.checkReviewExists(bookingId);
+          setHasReviewed(exists);
+        } catch (err) {
+          console.warn('Could not check review status:', err);
         }
-      } catch (err) {
-        console.warn('[ActivityDetail] Failed to poll booking status:', err);
       }
     };
-    
-    // Poll ngay lập tức lần đầu
-    pollBookingStatus();
-    
-    // Poll mỗi 2 giây để cập nhật realtime
-    const interval = setInterval(() => {
-      if (isPolling) {
-        pollBookingStatus();
+
+    checkReview();
+  }, [booking, bookingId]);
+
+  // Handle cancel booking
+  const handleCancelBooking = async (reason) => {
+    try {
+      await bookingAPI.cancelBooking(bookingId, reason);
+      alert('Đã hủy chuyến đi thành công');
+      setShowCancelModal(false);
+
+      // Refresh booking data to show updated status
+      await fetchBooking(false);
+
+      // Navigate back to activity list after a short delay
+      setTimeout(() => {
+        navigate('/activity');
+      }, 1000);
+    } catch (err) {
+      console.error('Error canceling booking:', err);
+      throw err; // Let modal handle the error
+    }
+  };
+
+
+  // Handle WebSocket booking updates via NotificationService
+  useEffect(() => {
+    if (lastNotification && lastNotification.type === 'BOOKING_STATUS') {
+      const update = lastNotification.payload;
+
+      // Ensure update is for current booking
+      if (update.bookingId !== bookingId) return;
+
+      console.log('[ActivityDetail] ✓ Received BOOKING_STATUS update:', update.status);
+
+      // Update booking state immediately
+      setBooking(prev => ({
+        ...prev,
+        status: update.status,
+        driverId: update.driverId || prev.driverId,
+        // Update other fields if present in payload
+        pickupLocation: update.pickupLatitude ? {
+          ...prev.pickupLocation,
+          latitude: update.pickupLatitude,
+          longitude: update.pickupLongitude,
+          address: update.pickupAddress || prev.pickupLocation.address
+        } : prev.pickupLocation,
+        dropoffLocation: update.dropoffLatitude ? {
+          ...prev.dropoffLocation,
+          latitude: update.dropoffLatitude,
+          longitude: update.dropoffLongitude,
+          address: update.dropoffAddress || prev.dropoffLocation.address
+        } : prev.dropoffLocation,
+        price: update.estimatedFare ? {
+          ...prev.price,
+          finalAmount: update.estimatedFare
+        } : prev.price
+      }));
+
+      // Refresh full booking data to ensure consistency (especially driver info)
+      if (update.status !== booking?.status) {
+        fetchBooking(false).catch(err => console.error('Error refreshing booking:', err));
       }
-    }, 2000);
-    
-    return () => {
-      isPolling = false;
-      clearInterval(interval);
-    };
-  }, [bookingId, booking?.status, fetchBooking]);
+
+      clearNotification();
+    }
+  }, [lastNotification, bookingId, booking?.status, fetchBooking, clearNotification]);
 
   // Poll driver location for MATCHED, DRIVER_ARRIVED, and IN_PROGRESS status (realtime)
   useEffect(() => {
-    if (!booking?.driverId) return;
-    
-    const status = booking.status;
+    // Need driverProfile.driverId (not booking.driverId which is userId) for Tracking API
+    if (!driverProfile?.driverId) return;
+
+    const status = booking?.status;
     if (status === 'MATCHED' || status === 'IN_PROGRESS' || status === 'DRIVER_ARRIVED') {
       let lastDriverLat = null;
       let lastDriverLng = null;
       let routeFetchInProgress = false;
-      
+
       const fetchRouteFromDriverToPickup = async (driverLat, driverLng, pickupLat, pickupLng) => {
         if (routeFetchInProgress) return; // Prevent concurrent route fetches
         routeFetchInProgress = true;
-        
+
         try {
           console.log('[ActivityDetail] Fetching route from driver to pickup:', {
             driver: { lat: driverLat, lng: driverLng },
             pickup: { lat: pickupLat, lng: pickupLng }
           });
-          
+
           const route = await mapAPI.getRoute(
             driverLat,
             driverLng,
@@ -265,7 +292,7 @@ const ActivityDetailScreen = () => {
             pickupLng,
             'driving'
           );
-          
+
           // Handle RouteResponse format from MapService
           if (route?.geometry && Array.isArray(route.geometry)) {
             const coordinates = route.geometry.map(point => {
@@ -286,7 +313,7 @@ const ActivityDetailScreen = () => {
               }
               return null;
             }).filter(coord => coord !== null);
-            
+
             if (coordinates.length > 0) {
               setRoutePolyline(coordinates);
             }
@@ -304,11 +331,11 @@ const ActivityDetailScreen = () => {
           routeFetchInProgress = false;
         }
       };
-      
+
       const fetchRouteFromDriverToDropoff = async (driverLat, driverLng, dropoffLat, dropoffLng) => {
         if (routeFetchInProgress) return;
         routeFetchInProgress = true;
-        
+
         try {
           const route = await mapAPI.getRoute(
             driverLat,
@@ -317,7 +344,7 @@ const ActivityDetailScreen = () => {
             dropoffLng,
             'driving'
           );
-          
+
           if (route?.geometry && Array.isArray(route.geometry)) {
             const coordinates = route.geometry.map(point => {
               if (typeof point === 'object' && point !== null) {
@@ -337,7 +364,7 @@ const ActivityDetailScreen = () => {
               }
               return null;
             }).filter(coord => coord !== null);
-            
+
             if (coordinates.length > 0) {
               setRoutePolyline(coordinates);
             }
@@ -350,29 +377,30 @@ const ActivityDetailScreen = () => {
           routeFetchInProgress = false;
         }
       };
-      
+
       const pollDriverLocation = async () => {
         try {
-          const location = await trackingAPI.getDriverLocation(booking.driverId);
+          // Use driverProfile.driverId (driver profile ID) not booking.driverId (userId)
+          const location = await trackingAPI.getDriverLocation(driverProfile.driverId);
           if (location) {
             const newDriverLocation = {
               lat: location.latitude,
               lng: location.longitude,
             };
-            
+
             // Always update driver location for realtime tracking
             setDriverLocation(newDriverLocation);
-            
+
             // Check if driver location has changed significantly (more than ~10 meters) to update route
             const hasChanged = lastDriverLat === null || lastDriverLng === null ||
               Math.abs(location.latitude - lastDriverLat) > 0.0001 ||
               Math.abs(location.longitude - lastDriverLng) > 0.0001;
-            
+
             if (hasChanged) {
               lastDriverLat = location.latitude;
               lastDriverLng = location.longitude;
             }
-            
+
             // Update map center to driver location for MATCHED and IN_PROGRESS
             if (status === 'MATCHED' || status === 'IN_PROGRESS') {
               setMapCenter({
@@ -380,7 +408,7 @@ const ActivityDetailScreen = () => {
                 lng: location.longitude,
               });
             }
-            
+
             // For MATCHED status: Fetch route from driver to pickup location
             if (status === 'MATCHED' && booking.pickupLocation && hasChanged) {
               await fetchRouteFromDriverToPickup(
@@ -390,7 +418,7 @@ const ActivityDetailScreen = () => {
                 booking.pickupLocation.longitude
               );
             }
-            
+
             // For IN_PROGRESS status: Fetch route from driver to dropoff location (realtime)
             if (status === 'IN_PROGRESS' && booking.dropoffLocation && hasChanged) {
               await fetchRouteFromDriverToDropoff(
@@ -405,14 +433,15 @@ const ActivityDetailScreen = () => {
           console.warn('[ActivityDetail] Could not fetch driver location:', err);
         }
       };
-      
-      // Poll every 2 seconds for realtime tracking
-      const interval = setInterval(pollDriverLocation, 2000);
+
+
+      // Poll every 15 seconds for driver location tracking (reduced from 7s to lower server load)
+      const interval = setInterval(pollDriverLocation, 15000);
       pollDriverLocation(); // Initial call
-      
+
       return () => clearInterval(interval);
     }
-  }, [booking?.driverId, booking?.status, booking?.pickupLocation, booking?.dropoffLocation]);
+  }, [driverProfile?.driverId, booking?.status, booking?.pickupLocation, booking?.dropoffLocation]);
 
   if (loading) {
     return (
@@ -440,12 +469,12 @@ const ActivityDetailScreen = () => {
 
   const status = booking.status || 'PENDING';
   const statusText = mapBookingStatusToVietnamese(status);
-  
+
   // Determine map markers based on status
   let pickupMarker = null;
   let destinationMarker = null;
   let driverMarker = null;
-  
+
   // PENDING: Show route from pickup to destination
   // MATCHED: Show driver location (if available) heading to pickup, and pickup/destination
   // IN_PROGRESS: Show driver location (if available) heading to destination, and destination
@@ -455,21 +484,21 @@ const ActivityDetailScreen = () => {
       lng: booking.pickupLocation.longitude,
     };
   }
-  
+
   if (booking.dropoffLocation) {
     destinationMarker = {
       lat: booking.dropoffLocation.latitude,
       lng: booking.dropoffLocation.longitude,
     };
   }
-  
+
   // For MATCHED: show driver location heading to pickup (if available)
   // For IN_PROGRESS: show driver location heading to destination (if available)
   // For DRIVER_ARRIVED: show driver location at pickup
   if ((status === 'MATCHED' || status === 'IN_PROGRESS' || status === 'DRIVER_ARRIVED') && driverLocation) {
     driverMarker = driverLocation;
   }
-  
+
   // Route logic:
   // - PENDING: Show route from pickup to dropoff
   // - MATCHED: Show route from driver to pickup (updated realtime)
@@ -488,7 +517,7 @@ const ActivityDetailScreen = () => {
     <div className="activity-detail-container">
       {/* Header */}
       <div className="activity-detail-header">
-        <button 
+        <button
           className="activity-detail-back-button"
           onClick={() => navigate('/activity')}
         >
@@ -548,11 +577,11 @@ const ActivityDetailScreen = () => {
           <h2 className="activity-detail-section-title">THÔNG TIN TÀI XẾ</h2>
           <div className="activity-detail-driver-info">
             <div className="activity-detail-driver-avatar">
-              {driverUser?.fullName?.[0] || 'T'}
+              {driverUser?.fullName?.[0] || driverUser?.phone?.[0] || 'T'}
             </div>
             <div className="activity-detail-driver-details">
               <div className="activity-detail-driver-name">
-                {driverUser?.fullName || `Tài xế ${booking.driverId?.substring(0, 8) || ''}`}
+                {driverUser?.fullName || driverUser?.phone || `Tài xế ${booking.driverId?.substring(0, 8) || ''}`}
                 {driverProfile?.rating && (
                   <span className="activity-detail-driver-rating">
                     ⭐ {driverProfile.rating.toFixed(1)}
@@ -602,9 +631,9 @@ const ActivityDetailScreen = () => {
               </div>
             </div>
           </div>
-          
+
           <div className="activity-detail-route-line"></div>
-          
+
           <div className="activity-detail-route-item">
             <div className="activity-detail-route-icon destination-icon">
               <Icons.MapPin className="w-5 h-5" />
@@ -661,6 +690,84 @@ const ActivityDetailScreen = () => {
         </div>
       </div>
 
+      {/* Review Button - Only show for COMPLETED trips */}
+      {status === 'COMPLETED' && (
+        <div className="activity-detail-section">
+          {hasReviewed ? (
+            <div style={{
+              width: '100%',
+              padding: '16px',
+              background: '#f0f0f0',
+              color: '#666',
+              border: 'none',
+              borderRadius: '12px',
+              fontSize: '16px',
+              fontWeight: '600',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '8px'
+            }}>
+              ✅ Đã đánh giá chuyến đi này
+            </div>
+          ) : (
+            <button
+              onClick={() => setShowReviewModal(true)}
+              style={{
+                width: '100%',
+                padding: '16px',
+                background: 'linear-gradient(135deg, #FFD700, #FFA500)',
+                color: 'white',
+                border: 'none',
+                borderRadius: '12px',
+                fontSize: '16px',
+                fontWeight: '600',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '8px',
+                transition: 'transform 0.2s'
+              }}
+              onMouseEnter={(e) => e.target.style.transform = 'translateY(-2px)'}
+              onMouseLeave={(e) => e.target.style.transform = 'translateY(0)'}
+            >
+              ⭐ Đánh giá chuyến đi
+            </button>
+          )}
+        </div>
+      )}
+
+      {/* Cancel Button - Only show for PENDING trips */}
+      {status === 'PENDING' && (
+        <div className="activity-detail-section">
+          <button
+            onClick={() => setShowCancelModal(true)}
+            style={{
+              width: '100%',
+              padding: '16px',
+              background: 'linear-gradient(135deg, #ff5252, #f44336)',
+              color: 'white',
+              border: 'none',
+              borderRadius: '12px',
+              fontSize: '16px',
+              fontWeight: '600',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '8px',
+              transition: 'transform 0.2s'
+            }}
+            onMouseEnter={(e) => e.target.style.transform = 'translateY(-2px)'}
+            onMouseLeave={(e) => e.target.style.transform = 'translateY(0)'}
+          >
+            ❌ Hủy chuyến đi
+          </button>
+        </div>
+      )}
+
+
       {/* Support Section */}
       <div className="activity-detail-section">
         <div className="activity-detail-support">
@@ -668,6 +775,26 @@ const ActivityDetailScreen = () => {
           <button className="activity-detail-support-btn">Liên hệ hỗ trợ</button>
         </div>
       </div>
+
+      {/* Review Modal */}
+      <ReviewModal
+        isOpen={showReviewModal}
+        onClose={() => setShowReviewModal(false)}
+        booking={booking}
+        onSuccess={() => {
+          console.log('Review submitted successfully');
+          setShowReviewModal(false);
+          setHasReviewed(true); // Mark as reviewed
+        }}
+      />
+
+      {/* Cancel Booking Modal */}
+      <CancelBookingModal
+        isOpen={showCancelModal}
+        onClose={() => setShowCancelModal(false)}
+        onConfirm={handleCancelBooking}
+        booking={booking}
+      />
     </div>
   );
 };

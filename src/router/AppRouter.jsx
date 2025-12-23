@@ -22,6 +22,7 @@ import AdminDashboard from '../pages/admin/DashboardPage';
 import AdminUsers from '../pages/admin/UsersPage';
 import AdminDrivers from '../pages/admin/DriversPage';
 import AdminBookings from '../pages/admin/BookingsPage';
+import AdminPricing from '../pages/admin/PricingPage';
 
 const PrivateRoute = ({ children, allowedRoles = [] }) => {
   const { isAuthenticated, loading, user } = useAuth();
@@ -52,10 +53,6 @@ const PrivateRoute = ({ children, allowedRoles = [] }) => {
 };
 
 const PublicRoute = ({ children }) => {
-  // Tạm thời cho phép truy cập tất cả
-  return children;
-  
-  /* CODE GỐC - Đã comment lại
   const { isAuthenticated, loading, user } = useAuth();
 
   if (loading) {
@@ -68,16 +65,16 @@ const PublicRoute = ({ children }) => {
 
   if (isAuthenticated) {
     // Redirect to appropriate dashboard based on role
-    if (user?.role === 'CUSTOMER') {
-      return <Navigate to="/home" replace />;
-    } else if (user?.role === 'ADMIN') {
+    if (user?.role === 'ADMIN') {
       return <Navigate to="/admin/dashboard" replace />;
+    } else if (user?.role === 'DRIVER') {
+      return <Navigate to="/driver" replace />;
+    } else {
+      return <Navigate to="/home" replace />;
     }
-    return <Navigate to="/home" replace />;
   }
 
   return children;
-  */
 };
 
 const AppRouter = () => {
@@ -210,6 +207,14 @@ const AppRouter = () => {
           element={
             <PrivateRoute allowedRoles={['ADMIN']}>
               <AdminBookings />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/admin/pricing"
+          element={
+            <PrivateRoute allowedRoles={['ADMIN']}>
+              <AdminPricing />
             </PrivateRoute>
           }
         />

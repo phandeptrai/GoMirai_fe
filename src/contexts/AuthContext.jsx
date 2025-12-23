@@ -52,10 +52,10 @@ export const AuthProvider = ({ children }) => {
     } catch (error) {
       // Xử lý lỗi validation từ backend
       let message = 'Đăng nhập thất bại. Vui lòng thử lại.';
-      
+
       if (error.response?.data) {
         const data = error.response.data;
-        
+
         // Lỗi validation (400 Bad Request)
         if (error.response.status === 400) {
           if (Array.isArray(data.errors)) {
@@ -65,7 +65,7 @@ export const AuthProvider = ({ children }) => {
           } else if (typeof data === 'string') {
             message = data;
           }
-        } 
+        }
         // Lỗi business logic (thường là 400 hoặc 401)
         else if (data.message) {
           message = data.message;
@@ -75,7 +75,7 @@ export const AuthProvider = ({ children }) => {
       } else if (error.message) {
         message = error.message;
       }
-      
+
       return { success: false, error: message };
     }
   };
@@ -101,10 +101,10 @@ export const AuthProvider = ({ children }) => {
     } catch (error) {
       // Xử lý lỗi validation từ backend
       let message = 'Đăng ký thất bại. Vui lòng thử lại.';
-      
+
       if (error.response?.data) {
         const data = error.response.data;
-        
+
         // Lỗi validation (400 Bad Request)
         if (error.response.status === 400) {
           if (Array.isArray(data.errors)) {
@@ -114,7 +114,7 @@ export const AuthProvider = ({ children }) => {
           } else if (typeof data === 'string') {
             message = data;
           }
-        } 
+        }
         // Lỗi business logic (thường là 400 - số điện thoại đã tồn tại)
         else if (data.message) {
           message = data.message;
@@ -124,7 +124,7 @@ export const AuthProvider = ({ children }) => {
       } else if (error.message) {
         message = error.message;
       }
-      
+
       return { success: false, error: message };
     }
   };
@@ -136,12 +136,41 @@ export const AuthProvider = ({ children }) => {
     setUser(null);
   };
 
+  /**
+   * Refresh token để cập nhật role mới
+   * Dùng khi role đã thay đổi (VD: sau khi được approve làm driver)
+   */
+  const refreshToken = async () => {
+    try {
+      const response = await authAPI.refreshToken();
+      const { userId, role, accessToken } = response;
+
+      // Cập nhật localStorage
+      localStorage.setItem('accessToken', accessToken);
+      localStorage.setItem('userId', userId?.toString() || userId);
+      localStorage.setItem('role', role);
+
+      // Cập nhật state
+      setUser({
+        userId,
+        role,
+        token: accessToken,
+      });
+
+      return { success: true, role };
+    } catch (error) {
+      console.error('Error refreshing token:', error);
+      return { success: false, error: 'Không thể cập nhật token' };
+    }
+  };
+
   const value = {
     user,
     loading,
     login,
     register,
     logout,
+    refreshToken,
     isAuthenticated: !!user,
   };
 

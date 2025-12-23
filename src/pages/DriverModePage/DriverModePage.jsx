@@ -7,34 +7,40 @@ import MapboxMap from '../../components/MapboxMap';
 import DriverBookingRequestModal from '../../components/DriverBookingRequestModal/DriverBookingRequestModal';
 import { Icons } from '../../components/constants';
 import useCurrentLocation from '../../hooks/useCurrentLocation';
+import useNotificationWebSocket from '../../hooks/useNotificationWebSocket';
 import './DriverModePage.css';
 
 const DriverModePage = () => {
   const navigate = useNavigate();
   const { location: currentLocation, requestLocation } = useCurrentLocation();
-  
+
   const [driverProfile, setDriverProfile] = useState(null);
   const [vehicle, setVehicle] = useState(null);
   const [isOnline, setIsOnline] = useState(false);
   const [loading, setLoading] = useState(true);
   const [toggling, setToggling] = useState(false);
   const [mapKey, setMapKey] = useState(0); // Key to force map re-render when going online
-  const [pendingBooking, setPendingBooking] = useState(null); // Current booking request
+  const [pendingBooking, setPendingBooking] = useState(null); // Current booking request being shown
+  const [offerQueue, setOfferQueue] = useState([]); // Queue of pending offers
   const [acceptingBooking, setAcceptingBooking] = useState(false); // Track if accepting
   const [focusLocation, setFocusLocation] = useState(null);
   const [rejectedBookingIds, setRejectedBookingIds] = useState(new Set()); // Track rejected booking IDs
+
+  // WebSocket for real-time events - centralized via NotificationService
+  const { isConnected: wsConnected, lastNotification, clearNotification } =
+    useNotificationWebSocket(driverProfile?.userId);
 
   // Fetch driver profile and vehicle
   useEffect(() => {
     const fetchDriverData = async () => {
       try {
         setLoading(true);
-        
+
         // Fetch driver profile
         const profile = await driverAPI.getMyProfile();
         setDriverProfile(profile);
         setIsOnline(profile.availabilityStatus === 'ONLINE');
-        
+
         // Fetch vehicle info
         const vehicleData = await driverAPI.getMyVehicle();
         setVehicle(vehicleData);
@@ -57,11 +63,11 @@ const DriverModePage = () => {
     if (!isOnline || !currentLocation || !driverProfile || !vehicle) {
       return;
     }
-    
+
     // Update location function
     const updateLocation = async () => {
       if (!currentLocation || !driverProfile || !vehicle) return;
-      
+
       try {
         await trackingAPI.updateLocation({
           driverId: driverProfile.driverId,
@@ -75,155 +81,112 @@ const DriverModePage = () => {
         console.warn('Failed to update location:', err);
       }
     };
-    
+
     // Update location immediately
     updateLocation();
-    
-    // Set up interval to update location every 5 seconds
+
+    // Set up interval to update location every 10 seconds
     const interval = setInterval(() => {
       updateLocation();
-    }, 5000);
-    
+    }, 10000);
+
     return () => {
       clearInterval(interval);
     };
   }, [isOnline, currentLocation, driverProfile, vehicle]);
 
-  // Poll for booking offers when online
+  // Subscribe to WebSocket for real-time booking offers
+  // Old WebSocket subscription logic removed.
+  // Notification Service automatically pushes to user queue based on userId.
+
+
+  // Handle WebSocket booking offer - DIRECT PAYLOAD
+  // Receives DriverBookingOfferResponse directly (no wrapping)
+  // Add to queue instead of showing immediately
   useEffect(() => {
-    if (!isOnline || !driverProfile || !vehicle) {
-      return; // Don't poll if offline, no profile
-    }
-    
-    const pollBookingOffers = async () => {
-      try {
-        const offers = await driverAPI.getBookingOffers();
-        
-        console.log('[DriverMode] Received offers:', offers);
-        console.log('[DriverMode] Vehicle type:', vehicle?.type);
-        console.log('[DriverMode] Current pending booking:', pendingBooking?.bookingId);
-        
-        if (!offers || offers.length === 0) {
-          // No offers, clear pending if exists
-          if (pendingBooking) {
-            console.log('[DriverMode] No offers, clearing pending booking');
-            setPendingBooking(null);
-          }
-          return;
-        }
-        
-        // Filter by vehicle type, check if not expired, and not rejected
-        const matchingOffers = offers.filter(offer => {
-          if (!offer || !offer.bookingId) return false;
-          
-          // Skip if this booking was already rejected
-          if (rejectedBookingIds.has(offer.bookingId)) {
-            console.log(`[DriverMode] Skipping rejected offer: ${offer.bookingId}`);
-            return false;
-          }
-          
-          // Case-insensitive vehicle type comparison
-          const vehicleMatch = offer.vehicleType && vehicle?.type 
-            ? offer.vehicleType.toUpperCase() === vehicle.type.toUpperCase()
-            : false;
-          
-          const notExpired = offer.timeLeftSeconds != null && offer.timeLeftSeconds > 0;
-          
-          console.log(`[DriverMode] Offer ${offer.bookingId}: vehicleType=${offer.vehicleType}, driverVehicle=${vehicle?.type}, match=${vehicleMatch}, timeLeft=${offer.timeLeftSeconds}, expired=${!notExpired}`);
-          
-          return vehicleMatch && notExpired;
-        });
-        
-        console.log('[DriverMode] Matching offers after filter:', matchingOffers.length);
-        
-        // Show first matching offer if available
-        if (matchingOffers.length > 0) {
-          const firstOffer = matchingOffers[0];
-          
-          // Debug: Log full offer data
-          console.log('[DriverMode] Full offer data:', JSON.stringify(firstOffer, null, 2));
-          console.log('[DriverMode] estimatedFare:', firstOffer.estimatedFare);
-          console.log('[DriverMode] pickupAddress:', firstOffer.pickupAddress);
-          console.log('[DriverMode] dropoffAddress:', firstOffer.dropoffAddress);
-          console.log('[DriverMode] estimatedDistanceKm:', firstOffer.estimatedDistanceKm);
-          console.log('[DriverMode] estimatedDurationMinutes:', firstOffer.estimatedDurationMinutes);
-          
-          // Check if this is a new offer (different bookingId) or we don't have a pending booking
-          if (!pendingBooking || pendingBooking.bookingId !== firstOffer.bookingId) {
-            console.log('[DriverMode] Setting new booking offer:', firstOffer.bookingId);
-            
-            // Convert offer to booking format for modal - include all data from DB
-            const bookingOffer = {
-              bookingId: firstOffer.bookingId,
-              pickupLocation: {
-                latitude: firstOffer.pickupLatitude,
-                longitude: firstOffer.pickupLongitude,
-                fullAddress: firstOffer.pickupAddress || 'Điểm đón',
-                address: firstOffer.pickupAddress || 'Điểm đón',
-                name: 'Điểm đón'
-              },
-              dropoffLocation: {
-                latitude: firstOffer.dropoffLatitude,
-                longitude: firstOffer.dropoffLongitude,
-                fullAddress: firstOffer.dropoffAddress || 'Điểm đến',
-                address: firstOffer.dropoffAddress || 'Điểm đến',
-                name: 'Điểm đến'
-              },
-              vehicleType: firstOffer.vehicleType,
-              estimatedDistanceKm: firstOffer.estimatedDistanceKm || 0,
-              estimatedDurationMinutes: firstOffer.estimatedDurationMinutes || 0,
-              estimatedFare: firstOffer.estimatedFare || 0,
-              currency: firstOffer.currency || 'VND',
-              price: {
-                totalAmount: firstOffer.estimatedFare || 0,
-                finalAmount: firstOffer.estimatedFare || 0,
-                estimatedTotal: firstOffer.estimatedFare || 0
-              },
-              paymentMethod: 'CASH', // Default, can be updated later
-              timeLeftSeconds: firstOffer.timeLeftSeconds
-            };
-            
-            console.log('[DriverMode] Mapped bookingOffer:', JSON.stringify(bookingOffer, null, 2));
-            
-            setPendingBooking(bookingOffer);
-          } else {
-            // Same booking, update timeLeftSeconds if needed
-            if (firstOffer.timeLeftSeconds !== pendingBooking.timeLeftSeconds) {
-              setPendingBooking(prev => ({
-                ...prev,
-                timeLeftSeconds: firstOffer.timeLeftSeconds
-              }));
-            }
-          }
-        } else if (pendingBooking) {
-          // No matching offers, clear pending booking if it exists
-          console.log('[DriverMode] No matching offers, clearing pending booking');
-          setPendingBooking(null);
-        }
-      } catch (err) {
-        console.error('[DriverMode] Failed to fetch booking offers:', err);
+    // Handle envelope { type: 'DRIVER_OFFER', payload: {...} }
+    if (lastNotification && lastNotification.type === 'DRIVER_OFFER') {
+      const lastOffer = lastNotification.payload;
+      console.log('[DriverMode] ✓ Received DRIVER_OFFER:', lastOffer);
+      console.log('[DriverMode] Offer details:', {
+        bookingId: lastOffer.bookingId,
+        fare: lastOffer.estimatedFare,
+        pickup: lastOffer.pickupAddress,
+        dropoff: lastOffer.dropoffAddress,
+        vehicleType: lastOffer.vehicleType
+      });
+
+      // Map to booking format for modal
+      const bookingOffer = {
+        bookingId: lastOffer.bookingId,
+        pickupLocation: {
+          latitude: lastOffer.pickupLatitude,
+          longitude: lastOffer.pickupLongitude,
+          fullAddress: lastOffer.pickupAddress || 'Điểm đón',
+          address: lastOffer.pickupAddress || 'Điểm đón',
+          name: 'Điểm đón'
+        },
+        dropoffLocation: {
+          latitude: lastOffer.dropoffLatitude,
+          longitude: lastOffer.dropoffLongitude,
+          fullAddress: lastOffer.dropoffAddress || 'Điểm đến',
+          address: lastOffer.dropoffAddress || 'Điểm đến',
+          name: 'Điểm đến'
+        },
+        vehicleType: lastOffer.vehicleType,
+        estimatedDistanceKm: lastOffer.estimatedDistanceKm || 0,
+        estimatedDurationMinutes: lastOffer.estimatedDurationMinutes || 0,
+        estimatedFare: lastOffer.estimatedFare || 0,
+        currency: lastOffer.currency || 'VND',
+        price: {
+          totalAmount: lastOffer.estimatedFare || 0,
+          finalAmount: lastOffer.estimatedFare || 0,
+          estimatedTotal: lastOffer.estimatedFare || 0
+        },
+        paymentMethod: 'CASH',
+        timeLeftSeconds: lastOffer.timeLeftSeconds
+      };
+
+      // Check if rejected or mismatch locally
+      if (rejectedBookingIds.has(bookingOffer.bookingId)) {
+        console.log('[DriverMode] Skipping rejected offer:', bookingOffer.bookingId);
+        clearNotification();
+        return;
       }
-    };
-    
-    // Poll immediately
-    pollBookingOffers();
-    
-    // Poll every 2 seconds for new offers (faster than before for real-time feel)
-    const interval = setInterval(() => {
-      pollBookingOffers();
-    }, 2000);
-    
-    return () => {
-      clearInterval(interval);
-    };
-  }, [isOnline, driverProfile, vehicle]);
+
+      if (vehicle && bookingOffer.vehicleType &&
+        bookingOffer.vehicleType.toUpperCase() !== vehicle.type.toUpperCase()) {
+        console.log('[DriverMode] Vehicle type mismatch, skipping offer');
+        clearNotification();
+        return;
+      }
+
+      // ADD TO QUEUE instead of showing immediately
+      console.log('[DriverMode] ✓ Adding offer to queue');
+      setOfferQueue(prev => [...prev, bookingOffer]);
+      clearNotification();
+    }
+  }, [lastNotification, clearNotification, rejectedBookingIds, vehicle]);
+
+  // Process queue: Show next offer when no popup is active
+  useEffect(() => {
+    if (!pendingBooking && offerQueue.length > 0) {
+      console.log('[DriverMode] ✓ Showing next offer from queue, remaining:', offerQueue.length - 1);
+      setPendingBooking(offerQueue[0]);
+      setOfferQueue(prev => prev.slice(1)); // Remove first item
+    }
+  }, [pendingBooking, offerQueue]);
+
+
+  // Handle offer expired via WebSocket
+
 
   const handleToggleStatus = async () => {
     if (toggling) return;
-    
+
     try {
       setToggling(true);
-      
+
       if (isOnline) {
         // Go offline
         await driverAPI.setOffline();
@@ -240,14 +203,14 @@ const DriverModePage = () => {
             return;
           }
         }
-        
+
         await driverAPI.setOnline();
         setIsOnline(true);
-        
+
         // Force map to re-center on current location
         setMapKey(prev => prev + 1);
       }
-      
+
       // Update profile to get latest status
       const updatedProfile = await driverAPI.getMyProfile();
       setDriverProfile(updatedProfile);
@@ -269,16 +232,20 @@ const DriverModePage = () => {
     try {
       setAcceptingBooking(true);
       const response = await bookingAPI.acceptBooking(pendingBooking.bookingId);
-      
+
       console.log('[DriverMode] Accept booking response:', response);
       console.log('[DriverMode] Driver profile userId:', driverProfile?.userId);
       console.log('[DriverMode] Response driverId:', response?.driverId);
-      
+
       // Check if booking was successfully assigned to this driver
       // Note: BookingService stores userId in driverId field, so compare with userId
       if (response && response.status === 'MATCHED' && response.driverId === driverProfile?.userId) {
         // Success - navigate to driver active booking screen
         console.log('[DriverMode] ✓ Booking accepted successfully');
+
+        // NOTE: WebSocket stays connected via NotificationService
+        // It uses a single shared connection for all realtime events
+
         setPendingBooking(null);
         navigate(`/driver/booking/${pendingBooking.bookingId}`);
       } else {
@@ -294,7 +261,7 @@ const DriverModePage = () => {
       }
     } catch (err) {
       console.error('Failed to accept booking:', err);
-      
+
       // Check error message
       const errorMessage = err.response?.data?.message || err.message || '';
       if (errorMessage.includes('already accepted') || errorMessage.includes('already assigned')) {
@@ -302,7 +269,7 @@ const DriverModePage = () => {
       } else {
         alert('Không thể nhận chuyến. Vui lòng thử lại.');
       }
-      
+
       setPendingBooking(null);
     } finally {
       setAcceptingBooking(false);
@@ -311,13 +278,13 @@ const DriverModePage = () => {
 
   const handleDeclineBooking = async () => {
     if (!pendingBooking) return;
-    
+
     const bookingId = pendingBooking.bookingId;
-    
+
     // Immediately hide modal and mark as rejected locally
     setPendingBooking(null);
     setRejectedBookingIds(prev => new Set([...prev, bookingId]));
-    
+
     // Call API to deactivate offer in backend
     try {
       await driverAPI.rejectBookingOffer(bookingId);
@@ -355,8 +322,8 @@ const DriverModePage = () => {
   // Check if account is active
   const canGoOnline = driverProfile.accountStatus === 'ACTIVE';
   const statusText = isOnline ? 'TRỰC TUYẾN' : 'NGOẠI TUYẾN';
-  const statusDescription = isOnline 
-    ? 'Bạn đang trực tuyến' 
+  const statusDescription = isOnline
+    ? 'Bạn đang trực tuyến'
     : 'Bạn đang ngoại tuyến';
   const statusInstruction = isOnline
     ? 'Tắt trực tuyến để dừng nhận cuốc xe.'
@@ -367,7 +334,7 @@ const DriverModePage = () => {
       {/* Header */}
       <div className="driver-mode-header">
         <div className="driver-mode-header-left">
-          <button 
+          <button
             className="driver-mode-back-button"
             onClick={() => navigate('/home')}
             title="Thoát chế độ tài xế"
@@ -443,7 +410,7 @@ const DriverModePage = () => {
             </div>
           </div>
         </div>
-        <button 
+        <button
           className="driver-mode-edit-btn"
           onClick={handleEditVehicle}
         >

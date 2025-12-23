@@ -4,6 +4,7 @@ import MapboxMap from '../../components/MapboxMap';
 import { SearchIcon } from '../../components/auth/icons';
 import BookingSearchModal from '../../components/BookingSearchModal';
 import LocationPermissionModal from '../../components/LocationPermissionModal';
+import DriverModeButton from '../../components/DriverModeButton';
 import useCurrentLocation from '../../hooks/useCurrentLocation';
 import { bookingAPI } from '../../api/booking.api';
 import { Icons } from '../../components/constants';
@@ -15,9 +16,9 @@ const HomePage = () => {
   const [isBookingModalOpen, setIsBookingModalOpen] = useState(false);
   const pollingIntervalRef = useRef(null);
   const [focusLocation, setFocusLocation] = useState(null);
-  const { 
-    location: currentLocation, 
-    loading: locationLoading, 
+  const {
+    location: currentLocation,
+    loading: locationLoading,
     error: locationError,
     showPermissionModal,
     handleAllow,
@@ -37,10 +38,10 @@ const HomePage = () => {
         // Lấy danh sách bookings PENDING và MATCHED của customer để check
         const pendingBookings = await bookingAPI.getCustomerBookings('PENDING', 0, 10);
         const matchedBookings = await bookingAPI.getCustomerBookings('MATCHED', 0, 10);
-        
+
         const pendingList = pendingBookings?.content || pendingBookings?.data || pendingBookings || [];
         const matchedList = matchedBookings?.content || matchedBookings?.data || matchedBookings || [];
-        
+
         // DISABLED: Tự động navigate khi tìm thấy booking MATCHED
         // Người dùng muốn tự quyết định khi nào xem chi tiết booking
         // if (matchedList.length > 0) {
@@ -56,14 +57,14 @@ const HomePage = () => {
         //   navigate(`/activity/${matchedBooking.bookingId}`);
         //   return;
         // }
-        
+
         // Nếu không có MATCHED, check các booking PENDING để xem có chuyển sang MATCHED không
         if (pendingList.length > 0) {
           // Check từng booking để xem có booking nào chuyển sang MATCHED không
           for (const booking of pendingList) {
             try {
               const latestBooking = await bookingAPI.getBooking(booking.bookingId);
-              
+
               // DISABLED: Tự động navigate khi status chuyển sang MATCHED
               // Người dùng muốn tự quyết định khi nào xem chi tiết booking
               // if (latestBooking?.status === 'MATCHED') {
@@ -93,11 +94,13 @@ const HomePage = () => {
       }
     };
 
+    // DISABLED: Auto-navigation is disabled, so polling is unnecessary
+    // WebSocket (useDriverWebSocket) handles real-time updates
     // Poll ngay lập tức
-    pollPendingBookings();
+    // pollPendingBookings();
 
     // Poll mỗi 2 giây để detect status change
-    pollingIntervalRef.current = setInterval(pollPendingBookings, 2000);
+    // pollingIntervalRef.current = setInterval(pollPendingBookings, 2000);
 
     return () => {
       if (pollingIntervalRef.current) {
@@ -150,8 +153,8 @@ const HomePage = () => {
 
       {/* Map Area */}
       <div className="map-container">
-        <MapboxMap 
-          height="40vh" 
+        <MapboxMap
+          height="40vh"
           focusLocation={focusLocation}
         />
         {/* Focus to current location button */}
@@ -181,17 +184,17 @@ const HomePage = () => {
             <span>Vị trí hiện tại:</span>
           </div>
           <div className="location-address">
-            {locationLoading ? 'Đang lấy vị trí...' : 
-             locationError ? locationError : 
-             currentLocation ? currentLocation.address : '2 Hải Triều, Bến Nghé, Q.1'}
+            {locationLoading ? 'Đang lấy vị trí...' :
+              locationError ? locationError :
+                currentLocation ? currentLocation.address : '2 Hải Triều, Bến Nghé, Q.1'}
           </div>
         </div>
 
         {/* Services Grid */}
         <div className="services-grid">
           {services.map((service) => (
-            <button 
-              key={service.id} 
+            <button
+              key={service.id}
               className="service-btn"
               onClick={() => {
                 if (service.id === 'car') {
@@ -237,17 +240,20 @@ const HomePage = () => {
       </nav>
 
       {/* Booking Search Modal */}
-      <BookingSearchModal 
-        isOpen={isBookingModalOpen} 
-        onClose={() => setIsBookingModalOpen(false)} 
+      <BookingSearchModal
+        isOpen={isBookingModalOpen}
+        onClose={() => setIsBookingModalOpen(false)}
       />
 
       {/* Location Permission Modal */}
-      <LocationPermissionModal 
+      <LocationPermissionModal
         isOpen={showPermissionModal}
         onAllow={handleAllow}
         onDeny={handleDeny}
       />
+
+      {/* Driver Mode Button */}
+      <DriverModeButton />
     </div>
   );
 };
