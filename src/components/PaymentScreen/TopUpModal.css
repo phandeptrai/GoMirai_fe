@@ -1,0 +1,293 @@
+/* TopUp Modal Overlay */
+.topup-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 20px;
+  animation: fadeIn 0.2s ease-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* Modal Container */
+.topup-modal {
+  background: #f8f9fa;
+  border-radius: 24px;
+  width: 100%;
+  max-width: 400px;
+  padding: 24px;
+  position: relative;
+  animation: slideUp 0.3s ease-out;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Header */
+.topup-header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 24px;
+  position: relative;
+}
+
+.topup-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: #1a1a1a;
+  margin: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.topup-close-btn {
+  position: absolute;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 1px solid #e5e7eb;
+  background: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: #9ca3af;
+  transition: all 0.2s;
+}
+
+.topup-close-btn:hover {
+  background: #f3f4f6;
+  color: #6b7280;
+}
+
+/* Balance Card */
+.topup-balance-card {
+  background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+  border-radius: 16px;
+  padding: 16px 20px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 24px;
+  border: 1px solid rgba(251, 191, 36, 0.3);
+}
+
+.topup-balance-icon {
+  font-size: 24px;
+}
+
+.topup-balance-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.topup-balance-label {
+  font-size: 11px;
+  color: #92400e;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  margin-bottom: 2px;
+}
+
+.topup-balance-value {
+  font-size: 20px;
+  font-weight: 700;
+  color: #d97706;
+}
+
+/* Amount Input Section */
+.topup-input-section {
+  margin-bottom: 20px;
+}
+
+.topup-input-label {
+  display: block;
+  font-size: 12px;
+  color: #6b7280;
+  font-weight: 600;
+  margin-bottom: 12px;
+  text-align: center;
+  letter-spacing: 0.5px;
+}
+
+.topup-input-wrapper {
+  background: white;
+  border-radius: 16px;
+  padding: 20px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  border: 2px solid #e5e7eb;
+  transition: border-color 0.2s;
+}
+
+.topup-input-wrapper:focus-within {
+  border-color: #10b981;
+}
+
+.topup-input {
+  border: none;
+  outline: none;
+  font-size: 32px;
+  font-weight: 700;
+  color: #1a1a1a;
+  text-align: center;
+  width: 100%;
+  max-width: 200px;
+  background: transparent;
+}
+
+.topup-input::placeholder {
+  color: #d1d5db;
+}
+
+.topup-input-currency {
+  font-size: 18px;
+  color: #9ca3af;
+  font-weight: 500;
+}
+
+.topup-error {
+  color: #ef4444;
+  font-size: 13px;
+  text-align: center;
+  margin-top: 8px;
+}
+
+/* Quick Select Section */
+.topup-quick-section {
+  margin-bottom: 24px;
+}
+
+.topup-quick-label {
+  display: block;
+  font-size: 12px;
+  color: #6b7280;
+  font-weight: 600;
+  margin-bottom: 12px;
+  letter-spacing: 0.5px;
+}
+
+.topup-quick-buttons {
+  display: flex;
+  gap: 10px;
+}
+
+.topup-quick-btn {
+  flex: 1;
+  padding: 12px 16px;
+  border-radius: 24px;
+  border: 1px solid #e5e7eb;
+  background: white;
+  font-size: 14px;
+  font-weight: 600;
+  color: #374151;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.topup-quick-btn:hover {
+  border-color: #10b981;
+  color: #10b981;
+}
+
+.topup-quick-btn-active {
+  background: #10b981;
+  border-color: #10b981;
+  color: white;
+}
+
+.topup-quick-btn-active:hover {
+  background: #059669;
+  border-color: #059669;
+  color: white;
+}
+
+/* Submit Button */
+.topup-submit-btn {
+  width: 100%;
+  padding: 16px 24px;
+  border-radius: 16px;
+  border: none;
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: white;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  transition: all 0.2s;
+  box-shadow: 0 4px 14px rgba(16, 185, 129, 0.4);
+}
+
+.topup-submit-btn:hover:not(:disabled) {
+  background: linear-gradient(135deg, #059669 0%, #047857 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(16, 185, 129, 0.5);
+}
+
+.topup-submit-btn:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.topup-submit-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.topup-submit-icon {
+  width: 20px;
+  height: 20px;
+}
+
+.topup-loading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.topup-loading::before {
+  content: '';
+  width: 16px;
+  height: 16px;
+  border: 2px solid white;
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}

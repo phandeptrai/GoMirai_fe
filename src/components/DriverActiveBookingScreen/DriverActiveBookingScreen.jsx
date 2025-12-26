@@ -499,6 +499,14 @@ const DriverActiveBookingScreen = () => {
     } catch (err) {
       console.error('Failed to mark as arrived:', err);
       const errorMessage = err.response?.data?.message || err.message || '';
+
+      // Handle canceled booking case
+      if (errorMessage.includes('CANCELED') || errorMessage.includes('CANCELLED') || errorMessage.includes('NO_DRIVER_FOUND')) {
+        alert('Khách hàng đã hủy chuyến này.');
+        navigate('/driver');
+        return;
+      }
+
       alert(errorMessage || 'Không thể cập nhật trạng thái. Vui lòng thử lại.');
     } finally {
       setArriving(false);
@@ -526,6 +534,14 @@ const DriverActiveBookingScreen = () => {
     } catch (err) {
       console.error('Failed to start trip:', err);
       const errorMessage = err.response?.data?.message || err.message || '';
+
+      // Handle canceled booking case
+      if (errorMessage.includes('CANCELED') || errorMessage.includes('CANCELLED')) {
+        alert('Chuyến đi đã bị hủy.');
+        navigate('/driver');
+        return;
+      }
+
       alert(errorMessage || 'Không thể bắt đầu chuyến đi. Vui lòng thử lại.');
     } finally {
       setStarting(false);
@@ -577,6 +593,18 @@ const DriverActiveBookingScreen = () => {
     } catch (err) {
       console.error('Failed to complete trip:', err);
       const errorMessage = err.response?.data?.message || err.message || '';
+
+      // Handle canceled or invalid status case
+      if (errorMessage.includes('CANCELED') || errorMessage.includes('CANCELLED') || errorMessage.includes('INVALID_STATUS')) {
+        alert('Không thể hoàn thành chuyến đi: ' + errorMessage);
+        // If status is invalid, we might want to refresh instead of navigating away immediately, 
+        // but for cancellation, navigating away is correct.
+        if (errorMessage.includes('CANCELED') || errorMessage.includes('CANCELLED')) {
+          navigate('/driver');
+          return;
+        }
+      }
+
       alert(errorMessage || 'Không thể hoàn thành chuyến đi. Vui lòng thử lại.');
     } finally {
       setCompleting(false);
