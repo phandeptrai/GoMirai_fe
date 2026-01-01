@@ -4,19 +4,21 @@ import { calculateHaversineDistance, formatDistance } from '../utils/distance';
 import { mapAPI } from '../api/map.api';
 import { pricingAPI } from '../api/pricing.api';
 import { bookingAPI } from '../api/booking.api';
+import { walletApi } from '../api/wallet.api';
+import PaymentMethodSelector from './PaymentMethodSelector';
 import './VehicleSelectionModal.css';
 
-const VehicleSelectionModal = ({ 
-  isOpen, 
+const VehicleSelectionModal = ({
+  isOpen,
   onClose,
   onBack = null, // Hàm để quay lại popup chọn địa điểm
-  pickupLocation, 
+  pickupLocation,
   destinationLocation,
   pickupCoords,
   destinationCoords,
   initialDistance = null,
   isDistanceEstimated = true,
-  onConfirm 
+  onConfirm
 }) => {
   const [selectedVehicle, setSelectedVehicle] = useState(VEHICLES[0]); // Mặc định chọn Bike
   const [estimatedDistance, setEstimatedDistance] = useState(initialDistance || 0); // km
@@ -33,6 +35,10 @@ const VehicleSelectionModal = ({
   // Trạng thái đặt xe
   const [isBooking, setIsBooking] = useState(false);
   const [bookingError, setBookingError] = useState(null);
+  // Payment method state
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState('CASH');
+  const [walletBalance, setWalletBalance] = useState(0);
+  const [isLoadingWallet, setIsLoadingWallet] = useState(false);
 
   // Tính khoảng cách giữa 2 điểm
   useEffect(() => {
@@ -60,14 +66,14 @@ const VehicleSelectionModal = ({
               // API trả về khoảng cách bằng mét, chuyển sang km
               const distanceKm = routeData.distance / 1000;
               setEstimatedDistance(Math.round(distanceKm * 100) / 100);
-              
+
               // Lưu thời gian cho ô tô (CAR_4) làm mặc định
               if (routeData.duration) {
                 const durationMinutes = Math.round(routeData.duration / 60);
                 setEstimatedDuration(durationMinutes);
                 setVehicleDurations(prev => ({ ...prev, 'CAR_4': durationMinutes }));
               }
-              
+
               setIsEstimated(false);
             }
           })
@@ -90,7 +96,7 @@ const VehicleSelectionModal = ({
             console.warn('Không thể lấy thời gian từ API:', error);
           });
       }
-      
+
       // Lấy thời gian riêng cho các loại xe khác (async, không block)
       // Xe máy
       getDurationForVehicle('BIKE');
@@ -128,7 +134,7 @@ const VehicleSelectionModal = ({
     }
 
     const profile = mapVehicleTypeToProfile(vehicleId);
-    
+
     try {
       const routeData = await mapAPI.getRoute(
         pickupCoords.lat,
@@ -140,13 +146,13 @@ const VehicleSelectionModal = ({
 
       if (routeData && routeData.duration) {
         let durationMinutes = Math.round(routeData.duration / 60);
-        
+
         // Điều chỉnh thời gian cho xe máy (cycling profile có thể chậm hơn thực tế)
         if (vehicleId === 'BIKE') {
           // Xe máy thường nhanh hơn cycling trong thành phố, điều chỉnh giảm 20-30%
           durationMinutes = Math.max(3, Math.round(durationMinutes * 0.75));
         }
-        
+
         // Lưu thời gian cho loại xe này
         setVehicleDurations(prev => ({ ...prev, [vehicleId]: durationMinutes }));
         return durationMinutes;
@@ -154,7 +160,7 @@ const VehicleSelectionModal = ({
     } catch (error) {
       console.warn(`Không thể lấy thời gian cho ${vehicleId}:`, error);
     }
-    
+
     return null;
   };
 
@@ -174,8 +180,8 @@ const VehicleSelectionModal = ({
       vehicleDurations[vehicleId] !== undefined
         ? vehicleDurations[vehicleId]
         : estimatedDuration !== null
-        ? estimatedDuration
-        : Math.max(5, Math.round(estimatedDistance * 2));
+          ? estimatedDuration
+          : Math.max(5, Math.round(estimatedDistance * 2));
 
     const region = 'DEFAULT';
     const vehicleTypeForPricing = mapVehicleTypeForPricing(vehicleId);
@@ -219,7 +225,7 @@ const VehicleSelectionModal = ({
     } catch (err) {
       console.error('=== LỖI KHI GỌI PRICING SERVICE CHO', vehicleId, '===');
       console.error('Error:', err);
-      
+
       if (err.response) {
         const status = err.response.status;
         const data = err.response.data;
@@ -250,7 +256,7 @@ const VehicleSelectionModal = ({
         if (!vehicleDurations[vehicle.id]) {
           getDurationForVehicle(vehicle.id);
         }
-        
+
         // Gọi pricing nếu chưa có giá cho loại xe này và không đang loading
         if (!pricingFares[vehicle.id] && !pricingLoadingStates[vehicle.id]) {
           fetchPricingForVehicle(vehicle.id);
@@ -270,13 +276,31 @@ const VehicleSelectionModal = ({
       if (!vehicleDurations[selectedVehicle.id]) {
         getDurationForVehicle(selectedVehicle.id);
       }
-      
+
       // Gọi pricing nếu chưa có giá cho loại xe này
       if (!pricingFares[selectedVehicle.id] && !pricingLoadingStates[selectedVehicle.id]) {
         fetchPricingForVehicle(selectedVehicle.id);
       }
     }
   }, [selectedVehicle?.id]); // Trigger khi chọn xe khác
+
+  // Fetch wallet balance when modal opens
+  useEffect(() => {
+    if (isOpen) {
+      setIsLoadingWallet(true);
+      walletApi.getWallet()
+        .then((res) => {
+          // Response structure from PaymentService: { walletId, userId, balance, currency, lastUpdated }
+          setWalletBalance(res.balance || 0);
+          setIsLoadingWallet(false);
+        })
+        .catch((err) => {
+          console.error('Failed to load wallet balance:', err);
+          setWalletBalance(0);
+          setIsLoadingWallet(false);
+        });
+    }
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
@@ -325,7 +349,7 @@ const VehicleSelectionModal = ({
     try {
       // Chuẩn bị dữ liệu booking
       const vehicleTypeForBooking = mapVehicleTypeForBooking(selectedVehicle.id);
-      
+
       // Tạo AddressSnapshot cho pickup và dropoff
       const pickupAddressSnapshot = {
         fullAddress: pickupLocation || 'Điểm đón',
@@ -344,13 +368,13 @@ const VehicleSelectionModal = ({
         pickupLocation: pickupAddressSnapshot,
         dropoffLocation: dropoffAddressSnapshot,
         vehicleType: vehicleTypeForBooking,
-        paymentMethod: 'CASH', // Mặc định tiền mặt, có thể thêm UI để chọn sau
+        paymentMethod: selectedPaymentMethod, // CASH or WALLET
       };
 
       console.log('Creating booking with data:', bookingData);
 
       const bookingResponse = await bookingAPI.createBooking(bookingData);
-      
+
       console.log('Booking created successfully:', bookingResponse);
 
       // Đóng modal và gọi callback
@@ -368,12 +392,12 @@ const VehicleSelectionModal = ({
       onClose();
     } catch (error) {
       console.error('Error creating booking:', error);
-      
+
       let errorMessage = 'Không thể đặt xe. Vui lòng thử lại.';
       if (error.response) {
         const status = error.response.status;
         const data = error.response.data;
-        
+
         if (status === 400) {
           errorMessage = data?.message || 'Dữ liệu không hợp lệ. Vui lòng kiểm tra lại.';
         } else if (status === 401) {
@@ -388,20 +412,34 @@ const VehicleSelectionModal = ({
       } else if (error.message) {
         errorMessage = error.message;
       }
-      
+
       setBookingError(errorMessage);
     } finally {
       setIsBooking(false);
     }
   };
 
+  // Check if user can pay with wallet
+  const canPayWithWallet = selectedPaymentMethod === 'WALLET'
+    ? walletBalance >= totalPrice
+    : true;
+
+  const isBookingDisabled =
+    isBooking ||
+    isVehicleLoading(selectedVehicle.id) ||
+    !pickupCoords ||
+    !destinationCoords ||
+    estimatedDistance <= 0 ||
+    totalPrice <= 0 ||
+    !canPayWithWallet;
+
   return (
     <div className="vehicle-selection-overlay" onClick={onClose}>
       <div className="vehicle-selection-content" onClick={(e) => e.stopPropagation()}>
         {/* Header */}
         <div className="vehicle-selection-header">
-          <button 
-            className="vehicle-selection-back-btn" 
+          <button
+            className="vehicle-selection-back-btn"
             onClick={() => {
               if (onBack) {
                 onBack(); // Quay lại popup chọn địa điểm
@@ -411,7 +449,7 @@ const VehicleSelectionModal = ({
             }}
           >
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5">
-              <path d="M15 18l-6-6 6-6"/>
+              <path d="M15 18l-6-6 6-6" />
             </svg>
           </button>
           <h2 className="vehicle-selection-title">Chọn phương tiện</h2>
@@ -449,7 +487,7 @@ const VehicleSelectionModal = ({
             const isSelected = selectedVehicle.id === vehicle.id;
             const price = getPriceForVehicle(vehicle);
             const isLoading = isVehicleLoading(vehicle.id);
-            
+
             return (
               <div
                 key={vehicle.id}
@@ -468,21 +506,21 @@ const VehicleSelectionModal = ({
                 <div className="vehicle-selection-item-info">
                   <h3 className="vehicle-selection-item-name">{vehicle.name}</h3>
                   <p className="vehicle-selection-item-description">
-                    {vehicle.description} • {vehicleDurations[vehicle.id] !== undefined 
-                      ? vehicleDurations[vehicle.id] 
+                    {vehicle.description} • {vehicleDurations[vehicle.id] !== undefined
+                      ? vehicleDurations[vehicle.id]
                       : estimatedDuration || vehicle.eta} phút
                     {estimatedDistance > 0 && ` • ${formatDistance(estimatedDistance)}`}
                   </p>
                 </div>
                 <div className="vehicle-selection-item-price">
                   <div className="vehicle-selection-item-price-value">
-                    {estimatedDistance <= 0 
+                    {estimatedDistance <= 0
                       ? 'Chọn điểm đến'
                       : isLoading
-                      ? 'Đang tính...'
-                      : price > 0
-                      ? `${price.toLocaleString('vi-VN')}₫`
-                      : '--'}
+                        ? 'Đang tính...'
+                        : price > 0
+                          ? `${price.toLocaleString('vi-VN')}₫`
+                          : '--'}
                   </div>
                   {isSelected && (
                     <div className="vehicle-selection-item-selected-badge">Đã chọn</div>
@@ -495,10 +533,13 @@ const VehicleSelectionModal = ({
 
         {/* Payment and Promotion */}
         <div className="vehicle-selection-footer-info">
-          <div className="vehicle-selection-payment">
-            <span>Thanh toán: </span>
-            <span className="vehicle-selection-payment-method">Tiền mặt</span>
-          </div>
+          <PaymentMethodSelector
+            selectedMethod={selectedPaymentMethod}
+            onMethodChange={setSelectedPaymentMethod}
+            walletBalance={walletBalance}
+            totalPrice={totalPrice}
+            isLoadingWallet={isLoadingWallet}
+          />
           {pricingError && (
             <div className="vehicle-selection-pricing-error">
               {pricingError}
@@ -515,20 +556,20 @@ const VehicleSelectionModal = ({
         </div>
 
         {/* Confirm Button */}
-        <button 
+        <button
           className="vehicle-selection-confirm-btn"
           onClick={handleConfirm}
-          disabled={isBooking || isVehicleLoading(selectedVehicle.id) || !pickupCoords || !destinationCoords || estimatedDistance <= 0 || totalPrice <= 0}
+          disabled={isBookingDisabled}
         >
-          {isBooking 
-            ? 'Đang đặt xe...' 
-            : isVehicleLoading(selectedVehicle.id) 
-            ? 'Đang tính giá...' 
-            : estimatedDistance <= 0
-            ? 'Vui lòng chọn điểm đến'
-            : totalPrice <= 0
-            ? 'Đang tính giá...'
-            : `Đặt xe • ${totalPrice.toLocaleString('vi-VN')}₫`}
+          {isBooking
+            ? 'Đang đặt xe...'
+            : isVehicleLoading(selectedVehicle.id)
+              ? 'Đang tính giá...'
+              : estimatedDistance <= 0
+                ? 'Vui lòng chọn điểm đến'
+                : totalPrice <= 0
+                  ? 'Đang tính giá...'
+                  : `Đặt xe • ${totalPrice.toLocaleString('vi-VN')}₫`}
         </button>
       </div>
     </div>
