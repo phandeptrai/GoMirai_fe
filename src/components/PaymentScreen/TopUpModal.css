@@ -291,3 +291,50 @@
     transform: rotate(360deg);
   }
 }
+
+/* ===== VNPay Specific Styles ===== */
+
+/* VNPay Banner */
+.topup-vnpay-banner {
+  background: linear-gradient(135deg, #fff5f5 0%, #ffe5e5 100%);
+  border: 1px solid rgba(220, 38, 38, 0.2);
+  border-radius: 12px;
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.topup-vnpay-logo {
+  height: 28px;
+  width: auto;
+  object-fit: contain;
+}
+
+.topup-vnpay-text {
+  font-size: 13px;
+  color: #991b1b;
+  font-weight: 500;
+}
+
+/* VNPay Button Style */
+.topup-vnpay-btn {
+  background: linear-gradient(135deg, #e53935 0%, #c62828 100%);
+  box-shadow: 0 4px 14px rgba(229, 57, 53, 0.4);
+}
+
+.topup-vnpay-btn:hover:not(:disabled) {
+  background: linear-gradient(135deg, #c62828 0%, #b71c1c 100%);
+  box-shadow: 0 6px 20px rgba(229, 57, 53, 0.5);
+}
+
+/* Note text */
+.topup-note {
+  font-size: 12px;
+  color: #6b7280;
+  text-align: center;
+  margin-top: 16px;
+  line-height: 1.5;
+}
+

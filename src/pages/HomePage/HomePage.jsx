@@ -6,6 +6,7 @@ import BookingSearchModal from '../../components/BookingSearchModal';
 import LocationPermissionModal from '../../components/LocationPermissionModal';
 import DriverModeButton from '../../components/DriverModeButton';
 import useCurrentLocation from '../../hooks/useCurrentLocation';
+import { useAuth } from '../../contexts/AuthContext';
 import { bookingAPI } from '../../api/booking.api';
 import { Icons } from '../../components/constants';
 import './HomePage.css';
@@ -13,6 +14,7 @@ import './HomePage.css';
 const HomePage = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { user } = useAuth();
   const [isBookingModalOpen, setIsBookingModalOpen] = useState(false);
   const pollingIntervalRef = useRef(null);
   const [focusLocation, setFocusLocation] = useState(null);
@@ -252,8 +254,8 @@ const HomePage = () => {
         onDeny={handleDeny}
       />
 
-      {/* Driver Mode Button */}
-      <DriverModeButton />
+      {/* Driver Mode Button - Chỉ hiển thị cho user có role DRIVER */}
+      {user?.role === 'DRIVER' && <DriverModeButton />}
     </div>
   );
 };

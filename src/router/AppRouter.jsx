@@ -14,6 +14,7 @@ import DriverRegistrationPage from '../pages/ProfilePage/DriverRegistrationPage'
 import DriverModePage from '../pages/DriverModePage/DriverModePage';
 import VehicleUpdatePage from '../pages/DriverModePage/VehicleUpdatePage';
 import DriverActiveBookingScreen from '../components/DriverActiveBookingScreen/DriverActiveBookingScreen';
+import VNPayResultPage from '../pages/VNPayResult/VNPayResultPage';
 
 
 
@@ -133,6 +134,11 @@ const AppRouter = () => {
         <Route
           path="/payment"
           element={<PaymentPage />}
+        />
+        {/* VNPay Result Page - Public vì user được redirect từ VNPay */}
+        <Route
+          path="/payment/vnpay/result"
+          element={<VNPayResultPage />}
         />
         <Route
           path="/profile"

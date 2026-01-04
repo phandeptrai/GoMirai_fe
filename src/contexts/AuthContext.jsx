@@ -129,6 +129,52 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  /**
+   * Đăng nhập bằng Google OAuth
+   * 
+   * Google OAuth chỉ thực hiện AUTHENTICATION (xác thực danh tính).
+   * Không phân biệt "đăng ký" hay "đăng nhập" ở phía người dùng:
+   * - Nếu Google account đã tồn tại → đăng nhập
+   * - Nếu chưa tồn tại → hệ thống tự động tạo user (auto-registration)
+   * 
+   * @param {string} idToken - Google ID Token từ Google Sign-In
+   */
+  const loginWithGoogle = async (idToken) => {
+    try {
+      const response = await authAPI.loginWithGoogle(idToken);
+      const { userId, role, accessToken } = response;
+
+      // Lưu vào localStorage
+      localStorage.setItem('accessToken', accessToken);
+      localStorage.setItem('userId', userId?.toString() || userId);
+      localStorage.setItem('role', role);
+
+      // Cập nhật state
+      setUser({
+        userId,
+        role,
+        token: accessToken,
+      });
+
+      return { success: true };
+    } catch (error) {
+      let message = 'Đăng nhập Google thất bại. Vui lòng thử lại.';
+
+      if (error.response?.data) {
+        const data = error.response.data;
+        if (data.message) {
+          message = data.message;
+        } else if (data.error) {
+          message = data.error;
+        }
+      } else if (error.message) {
+        message = error.message;
+      }
+
+      return { success: false, error: message };
+    }
+  };
+
   const logout = () => {
     localStorage.removeItem('accessToken');
     localStorage.removeItem('userId');
@@ -168,6 +214,7 @@ export const AuthProvider = ({ children }) => {
     user,
     loading,
     login,
+    loginWithGoogle,
     register,
     logout,
     refreshToken,

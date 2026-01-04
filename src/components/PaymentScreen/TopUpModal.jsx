@@ -29,8 +29,8 @@ const TopUpModal = ({ isOpen, onClose, currentBalance, onSuccess }) => {
         if (!amount || numAmount <= 0) {
             return 'Vui lòng nhập số tiền';
         }
-        if (numAmount < 1000) {
-            return 'Số tiền tối thiểu là 1,000 VND';
+        if (numAmount < 10000) {
+            return 'Số tiền tối thiểu là 10,000 VND';
         }
         if (numAmount > 10000000) {
             return 'Số tiền tối đa là 10,000,000 VND';
@@ -49,16 +49,26 @@ const TopUpModal = ({ isOpen, onClose, currentBalance, onSuccess }) => {
         setError('');
 
         try {
-            const response = await walletApi.topUp({ amount: parseInt(amount) });
-            console.log('Top-up success:', response);
-            onSuccess && onSuccess(response);
-            handleClose();
+            // Gọi API tạo thanh toán VNPay
+            const response = await walletApi.createVNPayPayment({ 
+                amount: parseInt(amount),
+                orderInfo: `Nap tien vi GoMirai - ${formatCurrency(parseInt(amount))} VND`
+            });
+            
+            console.log('VNPay payment created:', response);
+            
+            // Redirect user đến trang thanh toán VNPay
+            if (response.paymentUrl) {
+                window.location.href = response.paymentUrl;
+            } else {
+                setError('Không thể tạo thanh toán. Vui lòng thử lại.');
+            }
         } catch (err) {
-            console.error('Top-up failed:', err);
-            setError(err.response?.data?.message || 'Nạp tiền thất bại. Vui lòng thử lại.');
-        } finally {
+            console.error('VNPay payment creation failed:', err);
+            setError(err.response?.data?.message || 'Không thể tạo thanh toán. Vui lòng thử lại.');
             setLoading(false);
         }
+        // Không setLoading(false) vì page sẽ redirect
     };
 
     const handleClose = () => {
@@ -74,7 +84,7 @@ const TopUpModal = ({ isOpen, onClose, currentBalance, onSuccess }) => {
             <div className="topup-modal" onClick={(e) => e.stopPropagation()}>
                 {/* Header */}
                 <div className="topup-header">
-                    <h2 className="topup-title">NẠP TIỀN VÀO VÍ</h2>
+                    <h2 className="topup-title">NẠP TIỀN QUA VNPAY</h2>
                     <button className="topup-close-btn" onClick={handleClose}>
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                             <path d="M18 6L6 18M6 6l12 12" />
@@ -89,6 +99,16 @@ const TopUpModal = ({ isOpen, onClose, currentBalance, onSuccess }) => {
                         <span className="topup-balance-label">SỐ DƯ HIỆN TẠI</span>
                         <span className="topup-balance-value">{formatCurrency(currentBalance || 0)} VND</span>
                     </div>
+                </div>
+
+                {/* VNPay Info Banner */}
+                <div className="topup-vnpay-banner">
+                    <img 
+                        src="https://cdn.haitrieu.com/wp-content/uploads/2022/10/Logo-VNPAY-QR-1.png" 
+                        alt="VNPay" 
+                        className="topup-vnpay-logo"
+                    />
+                    <span className="topup-vnpay-text">Thanh toán an toàn qua VNPay</span>
                 </div>
 
                 {/* Amount Input */}
@@ -125,25 +145,32 @@ const TopUpModal = ({ isOpen, onClose, currentBalance, onSuccess }) => {
 
                 {/* Submit Button */}
                 <button
-                    className="topup-submit-btn"
+                    className="topup-submit-btn topup-vnpay-btn"
                     onClick={handleSubmit}
                     disabled={loading || !amount}
                 >
                     {loading ? (
-                        <span className="topup-loading">Đang xử lý...</span>
+                        <span className="topup-loading">Đang chuyển đến VNPay...</span>
                     ) : (
                         <>
                             <svg className="topup-submit-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                 <rect x="1" y="4" width="22" height="16" rx="2" ry="2" />
                                 <line x1="1" y1="10" x2="23" y2="10" />
                             </svg>
-                            NẠP TIỀN NGAY
+                            THANH TOÁN QUA VNPAY
                         </>
                     )}
                 </button>
+
+                {/* Note */}
+                <p className="topup-note">
+                    Bạn sẽ được chuyển đến trang VNPay để hoàn tất thanh toán.
+                    Số tiền sẽ được cộng vào ví sau khi thanh toán thành công.
+                </p>
             </div>
         </div>
     );
 };
 
 export default TopUpModal;
+
