@@ -1,6 +1,8 @@
 import axios from 'axios';
 
-const API_BASE_URL = 'http://localhost:8080';
+// Tất cả requests đi qua Nginx (port 80) - single entry point
+// Nginx sẽ route /ws → NotificationService, /* → API Gateway
+const API_BASE_URL = 'http://localhost';
 
 const apiClient = axios.create({
   baseURL: API_BASE_URL,

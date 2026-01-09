@@ -4,13 +4,16 @@ import { Icons } from '../constants';
 import { useAuth } from '../../contexts/AuthContext';
 import { userAPI } from '../../api/user.api';
 import { driverAPI } from '../../api/driver.api';
+import { bookingAPI } from '../../api/booking.api';
 import './ProfileScreen.css';
 
 const ProfileScreen = () => {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
+  /* Existing Logic */
   const [profile, setProfile] = useState(null);
   const [driverProfile, setDriverProfile] = useState(null);
+  const [completedTripsCount, setCompletedTripsCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -29,16 +32,18 @@ const ProfileScreen = () => {
         const userData = await userAPI.getProfile(user.userId);
         setProfile(userData);
 
-        // Fetch driver profile if exists (try-catch để không ảnh hưởng nếu chưa đăng ký)
-        try {
-          const driverData = await driverAPI.getMyProfile();
-          setDriverProfile(driverData);
-        } catch (driverErr) {
-          // Không có driver profile hoặc chưa đăng ký - không phải lỗi
-          if (driverErr.response?.status !== 404 && driverErr.response?.status !== 403) {
-            console.error('Error fetching driver profile:', driverErr);
+        // Fetch driver profile ONLY if user is a DRIVER
+        if (user.role === 'DRIVER') {
+          try {
+            const driverData = await driverAPI.getMyProfile();
+            setDriverProfile(driverData);
+          } catch (driverErr) {
+            // Log nhưng không fail
+             if (driverErr.response?.status !== 404) {
+               console.warn('Driver profile fetch failed:', driverErr);
+             }
+            setDriverProfile(null);
           }
-          setDriverProfile(null);
         }
       } catch (err) {
         console.error('Error fetching profile:', err);
@@ -50,6 +55,44 @@ const ProfileScreen = () => {
 
     fetchProfile();
   }, [user?.userId]);
+
+  // Fetch stats separately for Customer AND Driver
+  useEffect(() => {
+    const fetchStats = async () => {
+      if (!user) return;
+      try {
+          let res;
+          if (user.role === 'CUSTOMER') {
+            // Get bookings stats by fetching latest bookings and counting locally
+            // This ensures we count active/completed trips even if status filter on backend has issues
+            res = await bookingAPI.getCustomerBookings(null, 0, 50);
+            if (res && res.content) {
+                const count = res.content.filter(b => 
+                    ['COMPLETED', 'IN_PROGRESS', 'DRIVER_ARRIVED', 'MATCHED'].includes(b.status)
+                ).length;
+                
+                // If backend supports totalElements for filtered query, use it next time.
+                // For now, use local count of recent trips as a fallback/fix.
+                setCompletedTripsCount(count); 
+                return; // Exit here to skip standard totalElements set
+            }
+          } else if (user.role === 'DRIVER') {
+             // Get completed trips count for driver
+            res = await bookingAPI.getDriverBookings('COMPLETED', 0, 1);
+          }
+
+          console.log('[ProfileScreen] Stats response:', res); // Added debug log
+          if (res && res.totalElements !== undefined) {
+              setCompletedTripsCount(res.totalElements);
+          } else {
+             console.warn('[ProfileScreen] totalElements not found in stats response:', res); // Added warning for clarity
+          }
+      } catch (err) {
+        console.warn('Error fetching stats:', err);
+      }
+    };
+    fetchStats();
+  }, [user]);
 
   // Format driver status for display
   const getDriverStatusLabel = (status) => {
@@ -196,30 +239,49 @@ const ProfileScreen = () => {
 
       {/* Statistics Bar */}
       <div className="profile-stats">
-        {/* Đánh giá - Chỉ hiển thị cho DRIVER */}
-        {user?.role === 'DRIVER' && (
+        {/* DRIVER STATS: Rating | Completed Trips | Reviews */}
+        {user?.role === 'DRIVER' ? (
           <>
+            {/* 1. Rating */}
             <div className="profile-stat-item">
               <div className="profile-stat-value">
-                <span>4.9</span>
+                <span>{driverProfile?.rating ? driverProfile.rating.toFixed(1) : '5.0'}</span>
                 <Icons.Star className="profile-stat-star" />
+              </div>
+              <div className="profile-stat-label">Rating</div>
+            </div>
+            <div className="profile-stat-divider"></div>
+
+            {/* 2. Completed Trips (Real from BookingService) */}
+            <div className="profile-stat-item">
+              <div className="profile-stat-value">{completedTripsCount}</div>
+              <div className="profile-stat-label">Chuyến đi</div>
+            </div>
+            <div className="profile-stat-divider"></div>
+            
+            {/* 3. Reviews (Mapped from Backend's completedTrips) */}
+            <div className="profile-stat-item">
+              <div className="profile-stat-value">
+                 {driverProfile?.completedTrips || 0}
               </div>
               <div className="profile-stat-label">Đánh giá</div>
             </div>
-            <div className="profile-stat-divider"></div>
+            {/* Tạm ẩn hạng thành viên cho Driver nếu quá chật, hoặc giữ lại */}
+             <div className="profile-stat-divider"></div>
+          </>
+        ) : (
+          /* CUSTOMER STATS */
+          <>
+            {/* Chuyến đi */}
+            <div className="profile-stat-item">
+              <div className="profile-stat-value">{completedTripsCount}</div>
+              <div className="profile-stat-label">Chuyến đã đi</div>
+            </div>
+             <div className="profile-stat-divider"></div>
           </>
         )}
         
-        {/* Chuyến đi/chạy */}
-        <div className="profile-stat-item">
-          <div className="profile-stat-value">12</div>
-          <div className="profile-stat-label">
-            {user?.role === 'DRIVER' ? 'Chuyến đã chạy' : 'Chuyến đã đi'}
-          </div>
-        </div>
-        <div className="profile-stat-divider"></div>
-        
-        {/* Thành viên */}
+        {/* Thành viên (Chung cho cả 2 hoặc chỉ Customer) */}
         <div className="profile-stat-item">
           <div className="profile-stat-value">Vàng</div>
           <div className="profile-stat-label">Thành viên</div>

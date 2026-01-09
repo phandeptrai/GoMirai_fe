@@ -67,12 +67,27 @@ const ActivityDetailScreen = () => {
   const [mapCenter, setMapCenter] = useState(null);
   const [focusLocation, setFocusLocation] = useState(null);
 
-  const { currentUser } = useAuth();
-  const { lastNotification, clearNotification } = useNotificationWebSocket(currentUser?.userId);
+  const { user } = useAuth();
+  
+  // Chỉ connect WebSocket khi:
+  // 1. Có user đăng nhập
+  // 2. Booking chưa hoàn thành (COMPLETED) hoặc chưa bị hủy (CANCELED, NO_DRIVER_FOUND)
+  // Disconnect khi booking đã kết thúc để tiết kiệm tài nguyên
+  const isBookingEnded = booking && ['COMPLETED', 'CANCELED', 'NO_DRIVER_FOUND'].includes(booking.status);
+  const shouldConnectWebSocket = user?.userId && !isBookingEnded;
+  
+  const { isConnected, lastNotification, clearNotification } = useNotificationWebSocket(
+    shouldConnectWebSocket ? user.userId : null
+  );
 
-  // WebSocket removed - NotificationService handles realtime
-  // For now, customer can use polling from existing code
-  const wsConnected = false; // Disabled
+  // Log WebSocket connection status for debugging
+  useEffect(() => {
+    if (user?.userId) {
+      console.log('[ActivityDetail] 📡 WebSocket:', isConnected ? '✅ CONNECTED' : '⏳ Connecting...');
+      console.log('[ActivityDetail] User ID:', user.userId);
+      console.log('[ActivityDetail] Booking status:', booking?.status || 'loading...');
+    }
+  }, [isConnected, user?.userId, booking?.status]);
 
   // Fetch booking details
   const fetchBooking = useCallback(async (showLoading = true) => {
@@ -152,24 +167,32 @@ const ActivityDetailScreen = () => {
       // Fetch driver info if driverId exists
       // NOTE: BookingService stores userId in driverId field!
       if (bookingData.driverId) {
+        const driverUserId = bookingData.driverId;
+
+        // Fetch aggregated driver info (Vehicle + Name + Real Rating)
         try {
-          // bookingData.driverId is actually userId (backend design)
-          const driverUserId = bookingData.driverId;
-
-          // NOTE: userAPI.getProfile(driverUserId) removed - causes 403
-          // Customer cannot access other user profiles due to security
-          // Driver info is obtained from driver profile API instead
-
-          // Get driver profile by userId (vehicle, rating, driverId, and basic info)
+          const driverPublicInfo = await driverAPI.getDriverPublicInfo(driverUserId);
+          setDriverProfile(driverPublicInfo);
+          
+          // Driver name and phone are included in aggregrated response
+          if (driverPublicInfo.fullName || driverPublicInfo.phone) {
+            setDriverUser({
+              fullName: driverPublicInfo.fullName,
+              phone: driverPublicInfo.phone
+            });
+          }
+          console.log('[ActivityDetail] ✅ Driver public info fetched:', driverPublicInfo);
+        } catch (publicApiErr) {
+          console.warn('[ActivityDetail] Public API failed, trying fallback:', publicApiErr.message);
+          
+          // Fallback to old API (getProfileByUserId)
           try {
             const driverProfileData = await driverAPI.getProfileByUserId(driverUserId);
             setDriverProfile(driverProfileData);
-            console.log('[ActivityDetail] Driver profile fetched:', driverProfileData);
-          } catch (driverErr) {
-            console.warn('Could not fetch driver profile:', driverErr);
+            console.log('[ActivityDetail] ⚠️ Fallback driver profile:', driverProfileData);
+          } catch (fallbackErr) {
+            console.warn('[ActivityDetail] Could not fetch driver info:', fallbackErr);
           }
-        } catch (err) {
-          console.warn('Could not fetch driver info:', err);
         }
       }
     } catch (err) {
@@ -226,8 +249,17 @@ const ActivityDetailScreen = () => {
     if (lastNotification && lastNotification.type === 'BOOKING_STATUS') {
       const update = lastNotification.payload;
 
-      // Ensure update is for current booking
-      if (update.bookingId !== bookingId) return;
+      console.log('[ActivityDetail] 📡 Received BOOKING_STATUS notification:', update);
+      console.log('[ActivityDetail] Current bookingId:', bookingId, 'Update bookingId:', update.bookingId);
+
+      // Ensure update is for current booking - convert both to string for comparison
+      const updateBookingId = String(update.bookingId);
+      const currentBookingId = String(bookingId);
+      
+      if (updateBookingId !== currentBookingId) {
+        console.log('[ActivityDetail] ⏭ Skipping update - different booking');
+        return;
+      }
 
       console.log('[ActivityDetail] ✓ Received BOOKING_STATUS update:', update.status);
 
@@ -235,28 +267,29 @@ const ActivityDetailScreen = () => {
       setBooking(prev => ({
         ...prev,
         status: update.status,
-        driverId: update.driverId || prev.driverId,
+        driverId: update.driverId || prev?.driverId,
         // Update other fields if present in payload
         pickupLocation: update.pickupLatitude ? {
-          ...prev.pickupLocation,
+          ...prev?.pickupLocation,
           latitude: update.pickupLatitude,
           longitude: update.pickupLongitude,
-          address: update.pickupAddress || prev.pickupLocation.address
-        } : prev.pickupLocation,
+          address: update.pickupAddress || prev?.pickupLocation?.address
+        } : prev?.pickupLocation,
         dropoffLocation: update.dropoffLatitude ? {
-          ...prev.dropoffLocation,
+          ...prev?.dropoffLocation,
           latitude: update.dropoffLatitude,
           longitude: update.dropoffLongitude,
-          address: update.dropoffAddress || prev.dropoffLocation.address
-        } : prev.dropoffLocation,
+          address: update.dropoffAddress || prev?.dropoffLocation?.address
+        } : prev?.dropoffLocation,
         price: update.estimatedFare ? {
-          ...prev.price,
+          ...prev?.price,
           finalAmount: update.estimatedFare
-        } : prev.price
+        } : prev?.price
       }));
 
       // Refresh full booking data to ensure consistency (especially driver info)
       if (update.status !== booking?.status) {
+        console.log('[ActivityDetail] 🔄 Status changed, refreshing booking data...');
         fetchBooking(false).catch(err => console.error('Error refreshing booking:', err));
       }
 
@@ -577,29 +610,44 @@ const ActivityDetailScreen = () => {
           <h2 className="activity-detail-section-title">THÔNG TIN TÀI XẾ</h2>
           <div className="activity-detail-driver-info">
             <div className="activity-detail-driver-avatar">
-              {driverUser?.fullName?.[0] || driverUser?.phone?.[0] || 'T'}
+              {(driverProfile?.fullName || driverUser?.fullName)?.[0] || 
+               (driverProfile?.phone || driverUser?.phone)?.[0] || 'T'}
             </div>
             <div className="activity-detail-driver-details">
+              {/* Driver Name */}
               <div className="activity-detail-driver-name">
-                {driverUser?.fullName || driverUser?.phone || `Tài xế ${booking.driverId?.substring(0, 8) || ''}`}
-                {driverProfile?.rating && (
-                  <span className="activity-detail-driver-rating">
-                    ⭐ {driverProfile.rating.toFixed(1)}
-                  </span>
-                )}
+                {driverProfile?.fullName || driverUser?.fullName || 
+                 driverProfile?.phone || driverUser?.phone || 
+                 `Tài xế ${booking.driverId?.substring(0, 8) || ''}`}
               </div>
+              
+              {/* Rating & Reviews (Aggregated from Backend) */}
+              {driverProfile && (
+                <div className="activity-detail-driver-stats">
+                  <span className="activity-detail-driver-rating">
+                    ⭐ {driverProfile.rating != null ? driverProfile.rating.toFixed(1) : '0.0'}
+                  </span>
+                  <span className="activity-detail-driver-trips">
+                    • {driverProfile.completedTrips ?? 0} đánh giá
+                  </span>
+                </div>
+              )}
+              
+              {/* Vehicle Info */}
               {driverProfile?.vehicle ? (
                 <div className="activity-detail-driver-vehicle">
-                  {driverProfile.vehicle.brand} {driverProfile.vehicle.model} ({driverProfile.vehicle.color}) - {driverProfile.vehicle.plateNumber}
+                  🚗 {driverProfile.vehicle.brand} {driverProfile.vehicle.model} ({driverProfile.vehicle.color}) - {driverProfile.vehicle.plateNumber}
                 </div>
               ) : (
                 <div className="activity-detail-driver-vehicle">
-                  {mapVehicleTypeToName(booking.vehicleType)}
+                  🚗 {mapVehicleTypeToName(booking.vehicleType)}
                 </div>
               )}
-              {driverUser?.phone && (
+              
+              {/* Phone */}
+              {(driverProfile?.phone || driverUser?.phone) && (
                 <div className="activity-detail-driver-phone">
-                  📞 {driverUser.phone}
+                  📞 {driverProfile?.phone || driverUser?.phone}
                 </div>
               )}
             </div>

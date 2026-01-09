@@ -87,6 +87,17 @@ export const driverAPI = {
   },
 
   /**
+   * Get driver public info including name and phone (aggregated from DriverService + UserService)
+   * Used by customer to view driver info during active trip
+   * @param {string} userId - Driver's userId
+   * @returns {Promise<{driverId, userId, rating, completedTrips, vehicle, fullName, phone}>}
+   */
+  getDriverPublicInfo: async (userId) => {
+    const response = await apiClient.get(`/api/drivers/user/${userId}/public`);
+    return response.data?.data || response.data;
+  },
+
+  /**
    * Get active booking offers for current driver
    */
   getBookingOffers: async () => {
